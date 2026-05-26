@@ -1,0 +1,32 @@
+# Ignore all project subdirectories — only doc files are tracked
+PRTG Import/
+Pocket Probe/
+account-store/
+cert-manager/
+claude-sync/
+cyber-artifact-gen/
+cyber-eac-tool/
+cyber-estimates/
+cyber-proposals/
+digital-twin/
+email-monitor/
+email-processor/
+ethernet-link-analyzer/
+floor-plan-editor/
+kml/
+network-scanner/
+niagara-docs/
+outlook-followup/
+past-performance/
+project-tracking/
+rfp-automation/
+scripts/
+ssi-design-system/
+virtual-devices/
+daily-summary/
+
+# macOS
+.DS_Store
+
+# Build artifacts
+/tmp/
