@@ -62,10 +62,26 @@ This directory (`~/Documents/dev/`) is the root of a personal development worksp
 
 ## Port Map
 
-| Port | Project |
-|---|---|
-| 8010 | cyber-eac-tool |
-| 8108 | rfp-automation dashboard |
+Reserved ports for the dev portfolio. Each app binds its assigned port on startup; do not double-book.
+
+| Port | Project | Service | Start command |
+|---|---|---|---|
+| 8000 | network-scanner | FastAPI backend | `cd network-scanner && .venv/bin/uvicorn scanner.app:app --host 0.0.0.0 --port 8000` |
+| 8002 | cert-manager | FastAPI backend | `cd cert-manager/backend && .venv/bin/uvicorn app.main:app --port 8002` |
+| 8008 | rfp-automation | dashboard (stdlib HTTP) | `cd rfp-automation && .venv/bin/rfp-auto dashboard` (reads `RFP_DASHBOARD_PORT` from `.env`) |
+| 8010 | cyber-eac-tool | local Excel/edit server | `cd cyber-eac-tool && .venv/bin/python serve.py --port 8010` |
+| 8080 | digital-twin | Flask HMI | `cd digital-twin/frcs-digital-twin && WEB_HMI_PORT=8080 .venv/bin/python -m twin.cli run` |
+| 8765 | email-processor | FastAPI + uvicorn | `cd email-processor && uv run email-intake serve` |
+| 8767 | past-performance | FastAPI + uvicorn | `cd past-performance && PORT=8767 .venv/bin/python -m app` |
+| 8768 | project-tracking | FastAPI + uvicorn | `cd project-tracking && PT_PORT=8768 .venv/bin/python -m webapp` |
+| 5173 | cert-manager | Vite frontend (proxies `/api` → 8002) | `cd cert-manager/frontend && npm run dev` |
+
+**Notes:**
+
+- past-performance, project-tracking, and email-processor all default to 8765 in their own READMEs; the portfolio-wide assignment moves them apart so they can run simultaneously.
+- cert-manager's Vite proxy target in `frontend/vite.config.ts` must match the backend port (currently `8002`).
+- **Avoid port 8766** — silently reserved at the OS level on this machine (visible via `netstat` as LISTEN on `127.0.0.1:8766` but with no `lsof`-visible owner).
+- The `claude-sync` daemon binds `127.0.0.1:8866` (not a portfolio app server, but reserves the port).
 
 ---
 
@@ -75,3 +91,17 @@ This directory (`~/Documents/dev/`) is the root of a personal development worksp
 - `PROJECTS_SUMMARY.md` — compact per-project summary (auto-generated)
 - `DESIGN.docx` — portfolio architecture doc (data flows, shared libs, roadmap)
 - `PROJECTS_SUMMARY.docx` — same content as PROJECTS_SUMMARY.md in Word format
+
+---
+
+## Sliced Project Plans
+
+When the user asks to create, save, or prepare an execution plan for a project, prefer a local sliced plan under the project root:
+
+- Create a `./.plans/` directory in the project.
+- Add `./.plans/` to the project `.gitignore` when the project is a git repository, unless the user explicitly wants plans committed.
+- Split the plan into numbered markdown slices named in execution order, such as `01-config.md`, `02-core-logic.md`, and `03-docs-validation.md`.
+- Each slice should include goal, dependencies, files/entry points, implementation steps, tests, validation, and done criteria.
+- Add `./.plans/PLAN.md` as the index and orchestration file. It should briefly describe each slice, state the required execution order, and call out which slices can be done in parallel.
+- Keep slices small enough for an LLM or agent to execute independently, with clear contracts between slices.
+- If the project is not a git repository or `.gitignore` cannot be updated safely, mention that in the final response.
