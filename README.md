@@ -24,6 +24,7 @@ Personal development workspace for tools and systems built around DoD/MILCON cyb
 | [ethernet-link-analyzer](#ethernet-link-analyzer) | Network / OT Tools | Python, Scapy | Phase 1 |
 | [virtual-devices](#virtual-devices) | Network / OT Tools | Python, bacpypes3, Docker | v1 |
 | [digital-twin](#digital-twin) | Network / OT Tools | Python, BAC0, Flask | v1 |
+| [niagara-llm](#niagara-llm) | Network / OT Tools | Python, FastAPI, httpx, Claude API | v1 |
 | [Pocket Probe](#pocket-probe) | Network / OT Tools | C, KiCad, Python | Prototype |
 | [PRTG Import](#prtg-import) | Network / OT Tools | PowerShell | Production |
 | [kml](#kml) | Network / OT Tools | JS, Python | Utility |
@@ -96,6 +97,9 @@ Fleet of BACnet/IP virtual buildings that share a network with a real JACE 9000.
 
 #### digital-twin
 FRCS digital twin of a small commercial HVAC plant. Synthetic physics + BACnet/IP emulation with Flask/HTMX HMI for operator training and fault-injection. 26 scenarios (23 faults + 3 cyber), configurable time-compression. **Stack:** Python (BAC0, Flask, Click), BACnet/IP. 350+ tests.
+
+#### niagara-llm
+External analysis brain that monitors a Niagara BAS station — real-time point values and historical trend database — for issues. Consumes only Niagara-faithful interfaces (oBIX, REST/BQL, SQL history export) behind a single `StationDataSource` abstraction, so it ports to a real JACE/Supervisor by config change. v1 does rules + statistical FDD (10 seeded detectors) with Claude diagnosis-on-fire; developed against the digital-twin's Niagara emulation layer (the twin's FaultEngine is the test oracle). **Stack:** Python (FastAPI, httpx, Claude API), SQLite. 30 unit tests + live integration oracle. Design docs: `niagara-llm/docs/DESIGN.docx` / `.pdf`.
 
 #### Pocket Probe
 Keychain-sized network discovery device that captures LLDP/CDP frames to identify upstream switches, VLANs, and management IPs on any port. Firmware works on Nucleo dev board; v0 PCB layout not yet started. **Stack:** C (STM32F767 HAL), KiCad, Python simulators (Scapy).

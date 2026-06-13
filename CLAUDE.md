@@ -22,6 +22,7 @@ This directory (`~/Documents/dev/`) is the root of a personal development worksp
 | outlook-followup | Outlook follow-up automation | Stub |
 | past-performance | SSi past-performance doc search + extraction | v1 |
 | project-tracking | Job budget/cost/labor/submittal dashboard | v1 |
+| project-monitor | Project folder + Outlook email → PM status (todos, POs, invoices, schedule, budget) | v1 |
 | network-scanner | Active network discovery + BACnet enumeration | v1 |
 | ethernet-link-analyzer | Passive LLDP/CDP Ethernet discovery | Phase 1 |
 | virtual-devices | BACnet/IP virtual building fleet (76 devices) | v1 |
@@ -35,13 +36,14 @@ This directory (`~/Documents/dev/`) is the root of a personal development worksp
 | claude-sync | Syncthing conflict resolver for ~/.claude | v1 |
 | floor-plan-editor | 2D/3D floor plan editor → HA card export | Active |
 | niagara-docs | Niagara BAS reference docs | Stub |
+| niagara-llm | External LLM analysis brain for Niagara BAS (oBIX/REST-BQL/SQL); real-time + history FDD, Claude diagnosis | v1 |
 | scripts | Mount automation + Bash utilities | Active |
 
 ---
 
 ## Shared Dependencies
 
-- **account-store** → consumed by: rfp-automation, project-tracking, email-processor
+- **account-store** → consumed by: rfp-automation, project-tracking, email-processor, project-monitor
 - **ssi-design-system** → consumed by: project-tracking, (planned for all SSi web apps)
 - **cyber-proposals** → consumed by: cyber-estimates, rfp-automation (adapter)
 - **virtual-devices** → used by: network-scanner for integration testing
@@ -60,6 +62,32 @@ This directory (`~/Documents/dev/`) is the root of a personal development worksp
 
 ---
 
+## Virtualenvs: keep them in `.venv.nosync` (iCloud workaround)
+
+`~/Documents` is iCloud-synced on this Mac. iCloud Drive sets the macOS
+`UF_HIDDEN` flag on everything beneath dot-named directories (`.venv`, `.git`,
+...) and re-applies it within ~0.5s of `chflags nohidden`, so clearing flags is
+futile. Python 3.11+ silently skips hidden `.pth` files, which breaks editable
+installs (`ModuleNotFoundError` from `.venv/bin/...` console scripts while
+`uv run` still works). Directories ending in `.nosync` are excluded from iCloud
+entirely and never get flagged.
+
+- `UV_PROJECT_ENVIRONMENT=.venv.nosync` is exported in `~/.zshenv` (relative
+  path → resolved per-project), so `uv sync`/`uv run` create venvs at
+  `<project>/.venv.nosync`.
+- Each migrated project keeps a `.venv → .venv.nosync` symlink so existing
+  `.venv/bin/...` commands (e.g. the Port Map below) keep working.
+- Migrating an existing project: `rm -rf .venv && uv sync && ln -s .venv.nosync .venv`
+  (only when nothing is running from the venv). Ensure `.gitignore` uses
+  `.venv*`, not `.venv/` (a symlink isn't matched by the trailing-slash form).
+- Migrated so far: project-monitor, ssi-design-system. Others still have plain
+  `.venv` dirs with flagged `.pth` files — migrate on next touch
+  (email-processor was skipped because its server was running from `.venv`).
+- Don't write per-file workarounds (runtime import shims, chflags hooks) —
+  they lose the race or rot.
+
+---
+
 ## Port Map
 
 Reserved ports for the dev portfolio. Each app binds its assigned port on startup; do not double-book.
@@ -71,9 +99,13 @@ Reserved ports for the dev portfolio. Each app binds its assigned port on startu
 | 8008 | rfp-automation | dashboard (stdlib HTTP) | `cd rfp-automation && .venv/bin/rfp-auto dashboard` (reads `RFP_DASHBOARD_PORT` from `.env`) |
 | 8010 | cyber-eac-tool | local Excel/edit server | `cd cyber-eac-tool && .venv/bin/python serve.py --port 8010` |
 | 8080 | digital-twin | Flask HMI | `cd digital-twin/frcs-digital-twin && WEB_HMI_PORT=8080 .venv/bin/python -m twin.cli run` |
+| 8081 | digital-twin | Niagara oBIX server (emulator) | `cd digital-twin/frcs-digital-twin && TWIN_ENABLE_NIAGARA=1 .venv/bin/python -m twin.cli run` (gated by `TWIN_ENABLE_NIAGARA=1`) |
+| 8082 | digital-twin | Niagara REST/BQL endpoint (emulator) | same process as oBIX above (`NIAGARA_BQL_PORT`) |
 | 8765 | email-processor | FastAPI + uvicorn | `cd email-processor && uv run email-intake serve` |
-| 8767 | past-performance | FastAPI + uvicorn | `cd past-performance && PORT=8767 .venv/bin/python -m app` |
+| 8767 | past-performance | FastAPI + uvicorn | `cd past-performance && .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8767` |
 | 8768 | project-tracking | FastAPI + uvicorn | `cd project-tracking && PT_PORT=8768 .venv/bin/python -m webapp` |
+| 8769 | project-monitor | FastAPI + uvicorn | `cd project-monitor && PM_PORT=8769 .venv/bin/project-monitor run` |
+| 8770 | niagara-llm | FastAPI + dashboard | `cd niagara-llm && uv run niagara-llm run` |
 | 5173 | cert-manager | Vite frontend (proxies `/api` → 8002) | `cd cert-manager/frontend && npm run dev` |
 
 **Notes:**
