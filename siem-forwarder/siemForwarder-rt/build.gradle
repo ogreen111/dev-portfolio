@@ -1,0 +1,31 @@
+/*
+ * Runtime (-rt) module build. Produces siemForwarder-rt.jar, code-signed.
+ */
+apply plugin: 'com.tridium.niagara-module'
+apply plugin: 'com.tridium.niagara-signing'
+
+niagaraModule {
+  moduleName     = 'siemForwarder'
+  runtimeProfile = 'rt'
+  preferredSymbol = 'siem'
+}
+
+dependencies {
+  // Core Baja + control + driver APIs. Versions track your niagara_home.
+  nre        name: 'nre'
+  requires   name: 'baja'
+  requires   name: 'control-rt'
+  requires   name: 'driver-rt'
+  requires   name: 'alarm-rt'
+  requires   name: 'history-rt'
+}
+
+/*
+ * Signing: point at your keystore. For RMF, the cert must chain to an approved
+ * CA. Do NOT ship with the sample/self-signed keys.
+ *
+ *   niagaraSigning {
+ *     keystore = file(System.getenv('NIAGARA_SIGN_KEYSTORE'))
+ *     alias    = 'acme-code-signing'
+ *   }
+ */

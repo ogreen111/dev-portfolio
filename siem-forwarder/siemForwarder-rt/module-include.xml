@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Declares module runtime profile + defined types. Referenced by the build. -->
+<module name="siemForwarder"
+        vendor="Acme"
+        preferredSymbol="siem"
+        description="Non-interfering SIEM event forwarder for JACE/Niagara"
+        vendorVersion="1.0.0"
+        bajaVersion="4.10">
+
+  <runtimeProfile name="rt"/>
+
+  <defs>
+    <type name="SiemForwarderService" class="com.acme.siem.BSiemForwarderService"/>
+  </defs>
+</module>

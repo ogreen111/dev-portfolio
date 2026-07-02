@@ -25,6 +25,7 @@ Personal development workspace for tools and systems built around DoD/MILCON cyb
 | [virtual-devices](#virtual-devices) | Network / OT Tools | Python, bacpypes3, Docker | v1 |
 | [digital-twin](#digital-twin) | Network / OT Tools | Python, BAC0, Flask | v1 |
 | [niagara-llm](#niagara-llm) | Network / OT Tools | Python, FastAPI, httpx, Claude API | v1 |
+| [siem-forwarder](#siem-forwarder) | Network / OT Tools | Java (Niagara 4), Gradle | Skeleton/design-complete |
 | [Pocket Probe](#pocket-probe) | Network / OT Tools | C, KiCad, Python | Prototype |
 | [PRTG Import](#prtg-import) | Network / OT Tools | PowerShell | Production |
 | [kml](#kml) | Network / OT Tools | JS, Python | Utility |
@@ -100,6 +101,9 @@ FRCS digital twin of a small commercial HVAC plant. Synthetic physics + BACnet/I
 
 #### niagara-llm
 External analysis brain that monitors a Niagara BAS station — real-time point values and historical trend database — for issues. Consumes only Niagara-faithful interfaces (oBIX, REST/BQL, SQL history export) behind a single `StationDataSource` abstraction, so it ports to a real JACE/Supervisor by config change. v1 does rules + statistical FDD (10 seeded detectors) with Claude diagnosis-on-fire; developed against the digital-twin's Niagara emulation layer (the twin's FaultEngine is the test oracle). **Stack:** Python (FastAPI, httpx, Claude API), SQLite. 30 unit tests + live integration oracle. Design docs: `niagara-llm/docs/DESIGN.docx` / `.pdf`.
+
+#### siem-forwarder
+Niagara 4 JACE module that forwards security-relevant station events (point value/status changes, alarms, audit records) to a SIEM over RFC 5424 syslog/TLS, built around a non-interference design: ride-along subscriptions only (never adds polls to the RS-485 field bus), bounded drop-oldest queue drained by a below-normal-priority worker thread, and self-throttling with explicit gap events. Skeleton — structure, threading model, and safety patterns complete; bind points marked for the target Niagara build. **Stack:** Java (Niagara 4 module API, Gradle). Design doc: `siem-forwarder/siemForwarder-SDD.docx`.
 
 #### Pocket Probe
 Keychain-sized network discovery device that captures LLDP/CDP frames to identify upstream switches, VLANs, and management IPs on any port. Firmware works on Nucleo dev board; v0 PCB layout not yet started. **Stack:** C (STM32F767 HAL), KiCad, Python simulators (Scapy).

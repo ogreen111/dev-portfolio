@@ -1,0 +1,28 @@
+/*
+ * Root build for the siemForwarder Niagara module.
+ *
+ * Uses Tridium's Niagara Gradle plugin (the standard N4 module toolchain). You
+ * need a licensed Niagara 4.10+ install and the niagara_home / dev bundle set up
+ * per Tridium's "Developer Guide". This file assumes the conventional layout
+ * produced by `gradlew moduleTemplate`.
+ */
+plugins {
+  id 'com.tridium.niagara-module' version '4.10.+' apply false
+  id 'com.tridium.niagara-signing' version '4.10.+' apply false
+}
+
+allprojects {
+  group = 'com.acme'
+  version = '1.0.0'
+}
+
+subprojects {
+  apply plugin: 'java'
+  sourceCompatibility = JavaVersion.VERSION_1_8
+  targetCompatibility = JavaVersion.VERSION_1_8
+
+  repositories {
+    // Niagara dependencies resolve from the local dev bundle, not Maven Central.
+    flatDir { dirs "${System.getenv('niagara_home')}/modules" }
+  }
+}

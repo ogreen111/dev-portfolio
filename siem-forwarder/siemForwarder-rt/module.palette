@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Palette so the service can be dragged into a station's Services container
+     from Workbench. -->
+<bajaObjectGraph version="4.0">
+  <p m="b=baja">
+    <p n="siemForwarder" t="siemForwarder:SiemForwarderService"/>
+  </p>
+</bajaObjectGraph>

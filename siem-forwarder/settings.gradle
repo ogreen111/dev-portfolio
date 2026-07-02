@@ -1,0 +1,13 @@
+pluginManagement {
+  // The com.tridium.niagara-* Gradle plugins are NOT on the public plugin
+  // portal; they ship with Tridium's "Niagara 4 Application Developer" bundle.
+  // Point at the bundle's Maven repo via niagara_home (path per the Developer
+  // Guide for your release; etc/m2 is the conventional location).
+  repositories {
+    maven { url = "${System.getenv('niagara_home')}/etc/m2/repository" }
+    gradlePluginPortal()
+  }
+}
+
+rootProject.name = 'siemForwarder'
+include 'siemForwarder-rt'

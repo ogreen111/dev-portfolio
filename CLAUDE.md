@@ -38,6 +38,7 @@ This directory (`~/Documents/dev/`) is the root of a personal development worksp
 | niagara-docs | Niagara BAS reference docs | Stub |
 | niagara-llm | External LLM analysis brain for Niagara BAS (oBIX/REST-BQL/SQL); real-time + history FDD, Claude diagnosis | v1 |
 | sanguine | Internal Levels.com-style blood-lab results viewer (PDF/CSV + Apple Health import, optimal vs standard ranges, trends, biomarker detail pages, PhenoAge biological age, vitals, Claude-generated cached explanations) | v1 |
+| siem-forwarder | Niagara 4 JACE module forwarding point/alarm/audit events to a SIEM over RFC 5424 syslog/TLS, non-interference design | Skeleton/design-complete |
 | scripts | Mount automation + Bash utilities | Active |
 
 ---

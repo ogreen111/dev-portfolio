@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  module-permissions.xml
+  ----------------------
+  Niagara 4.8+ runs third-party modules under a Java SecurityManager. Any socket
+  the module opens must be declared here or the JVM will throw SecurityException
+  at runtime. Scope the SocketPermission as narrowly as your deployment allows.
+
+  The JAR must also be code-signed. In a DoD/RMF environment sign with a cert
+  chaining to an approved CA; lowering the signature policy is not acceptable for
+  accreditation.
+-->
+<module-permissions>
+  <permission class="java.net.SocketPermission"
+              name="siem.mgmt.local:6514"
+              actions="connect,resolve"/>
+
+  <!-- If the SIEM host/port is operator-configurable, widen to the mgmt subnet
+       rather than the whole world, e.g.:
+  <permission class="java.net.SocketPermission"
+              name="10.20.30.0/24:1024-65535"
+              actions="connect,resolve"/>
+  -->
+
+  <!-- TLS trust store / SSL context access -->
+  <permission class="java.lang.RuntimePermission" name="getProperty.javax.net.ssl.*"/>
+  <permission class="java.util.PropertyPermission" name="javax.net.ssl.*" actions="read"/>
+</module-permissions>
