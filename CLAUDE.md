@@ -37,6 +37,7 @@ This directory (`~/Documents/dev/`) is the root of a personal development worksp
 | floor-plan-editor | 2D/3D floor plan editor → HA card export | Active |
 | niagara-docs | Niagara BAS reference docs | Stub |
 | niagara-llm | External LLM analysis brain for Niagara BAS (oBIX/REST-BQL/SQL); real-time + history FDD, Claude diagnosis | v1 |
+| sanguine | Internal Levels.com-style blood-lab results viewer (PDF/CSV + Apple Health import, optimal vs standard ranges, trends, biomarker detail pages, PhenoAge biological age, vitals, Claude-generated cached explanations) | v1 |
 | scripts | Mount automation + Bash utilities | Active |
 
 ---
@@ -106,6 +107,8 @@ Reserved ports for the dev portfolio. Each app binds its assigned port on startu
 | 8768 | project-tracking | FastAPI + uvicorn | `cd project-tracking && PT_PORT=8768 .venv/bin/python -m webapp` |
 | 8769 | project-monitor | FastAPI + uvicorn | `cd project-monitor && PM_PORT=8769 .venv/bin/project-monitor run` |
 | 8770 | niagara-llm | FastAPI + dashboard | `cd niagara-llm && uv run niagara-llm run` |
+| 8771 | sanguine | FastAPI + dashboard | `cd sanguine && uv run sanguine run` (reads `SANGUINE_PORT`) |
+| 8772 | cyber-brain | FastAPI + dashboard | `cd cyber-brain && uv run cyber-brain run` (reads `CB_HOST`/`CB_PORT`; binds 127.0.0.1 by default) |
 | 5173 | cert-manager | Vite frontend (proxies `/api` → 8002) | `cd cert-manager/frontend && npm run dev` |
 
 **Notes:**
