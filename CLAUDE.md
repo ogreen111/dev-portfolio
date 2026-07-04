@@ -1,6 +1,6 @@
 # Dev Portfolio — Claude Context
 
-This directory (`~/Documents/dev/`) is the root of a personal development workspace containing 24 projects built around three core domains:
+This directory (`~/Documents/dev/`) is the root of a personal development workspace containing 32 projects built around three core domains:
 
 1. **DoD/MILCON cybersecurity proposal automation** — RFP intake → pricing → tech proposal → EAC tracking
 2. **BAS/OT network engineering** — passive discovery, BACnet simulation, site scanning, hardware prototypes
@@ -18,15 +18,17 @@ This directory (`~/Documents/dev/`) is the root of a personal development worksp
 | cyber-eac-tool | Earned-value forecasting (EAC/ETC/CPI/SPI) | Active |
 | cyber-artifact-gen | BAS→diagram/schematic conversion for proposals | Utility |
 | email-processor | Inbound RFI/RFQ/RFP email triage and summarization | Production |
-| email-monitor | Email monitoring component | Stub |
 | outlook-followup | Outlook follow-up automation | Stub |
 | past-performance | SSi past-performance doc search + extraction | v1 |
-| project-tracking | Job budget/cost/labor/submittal dashboard | v1 |
-| project-monitor | Project folder + Outlook email → PM status (todos, POs, invoices, schedule, budget) | v1 |
+| project-tracking | Job budget/cost/labor/submittal dashboard; React v2 UI primary, Planner/SharePoint Graph sync | v1 |
+| project-monitor | Project folder + Outlook email → PM status via entity registers (contracts, mods, POs, invoices, pay apps) | v2 |
+| cyber-brain | SSi cyber group knowledge system: Graph ingestion (SharePoint/Planner/Teams/email) → per-project event stream, briefs, cited Q&A | v0.1 |
+| daily-summary | Power Automate daily email digest solution | v0 |
+| fulcrum-replacement | Offline-first mobile field data collection platform (Fulcrum SaaS replacement) | Design only |
 | network-scanner | Active network discovery + BACnet enumeration | v1 |
-| ethernet-link-analyzer | Passive LLDP/CDP Ethernet discovery | Phase 1 |
+| ethernet-link-analyzer | Passive LLDP/CDP Ethernet discovery; Pi field appliance w/ touch UI, battery, gated active tests | Phase 4 |
 | virtual-devices | BACnet/IP virtual building fleet (76 devices) | v1 |
-| digital-twin | FRCS HVAC plant digital twin + fault injection | v1 |
+| digital-twin | FRCS HVAC plant digital twin + fault injection; campus multi-RTU mode, electrical model, ~50-detector FDD | v1.10 |
 | Pocket Probe | STM32 LLDP/CDP keychain device | Prototype |
 | PRTG Import | Bulk PRTG device import from CSV | Production |
 | kml | KML/topology generation utilities (JBLM) | Utility |
@@ -34,9 +36,10 @@ This directory (`~/Documents/dev/`) is the root of a personal development worksp
 | account-store | Shared user account management library | Library |
 | ssi-design-system | SSi brand tokens + CSS + doc generation | v0.1 |
 | claude-sync | Syncthing conflict resolver for ~/.claude | v1 |
+| claude-memory-compiler | Hook-captured Claude conversations → compiled knowledge articles | v0 |
 | floor-plan-editor | 2D/3D floor plan editor → HA card export | Active |
-| niagara-docs | Niagara BAS reference docs | Stub |
-| niagara-llm | External LLM analysis brain for Niagara BAS (oBIX/REST-BQL/SQL); real-time + history FDD, Claude diagnosis | v1 |
+| niagara-docs | Niagara 4.10/4.15 runtime binary cache + Supervisor backup (dev reference, not a project) | Stub |
+| niagara-llm | CASCADE — external LLM analysis brain for Niagara BAS (oBIX/REST-BQL/SQL); FDD + LLM diagnosis, air-gapped local LLM (Ollama), Supervisor audit CLI, backup assessment | v2 |
 | sanguine | Internal Levels.com-style blood-lab results viewer (PDF/CSV + Apple Health import, optimal vs standard ranges, trends, biomarker detail pages, PhenoAge biological age, vitals, Claude-generated cached explanations) | v1 |
 | siem-forwarder | Niagara 4 JACE module forwarding point/alarm/audit events to a SIEM over RFC 5424 syslog/TLS, non-interference design | Skeleton/design-complete |
 | scribe | SSI Scribe — self-hosted AI meeting note taker: Whisper/MLX ASR, pyannote diarization, Ollama gpt-oss:120b summaries (own repo: github.com/ogreen111/scribe) | v0.1 |
