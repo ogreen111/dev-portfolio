@@ -34,6 +34,7 @@ Personal development workspace for tools and systems built around DoD/MILCON cyb
 | [ssi-design-system](#ssi-design-system) | Platform / Shared | JSON, CSS, Python | v0.1 |
 | [claude-sync](#claude-sync) | Platform / Shared | Python, launchd | v1 |
 | [floor-plan-editor](#floor-plan-editor) | Standalone Tools | HTML5, Three.js | Active |
+| [scribe](#scribe) | Standalone Tools | Python, FastAPI, Whisper/MLX, pyannote, Ollama | v0.1 |
 | [niagara-docs](#niagara-docs) | Reference | — | Stub |
 | [scripts](#scripts) | Reference | Bash | Active |
 
@@ -138,6 +139,9 @@ macOS daemon resolving Syncthing conflict files in `~/.claude/projects/` using p
 
 #### floor-plan-editor
 Single-file web app for editing 2D floor plans (from RoboRock vacuum maps), 3D dollhouse view, and Home Assistant picture-elements card export. **Stack:** HTML5 + JavaScript (Three.js), localStorage, SVG export.
+
+#### scribe
+SSI Scribe — self-hosted, privacy-first AI meeting note taker (split out of rfp-automation into its own repo: github.com/ogreen111/scribe). Bot-free browser capture with live transcript plus recording upload, Whisper/MLX transcription, pyannote speaker diarization, and Ollama-served gpt-oss:120b structured summaries (decisions, action items with owners, recap email draft). Cross-meeting Ask-AI with citations, FTS5 search, talk-time analytics, tags, and Word/Markdown/transcript exports. **Stack:** Python (FastAPI, SQLite WAL+FTS5), vanilla-JS SPA, Whisper/MLX, pyannote, Ollama. Port 8736.
 
 ---
 

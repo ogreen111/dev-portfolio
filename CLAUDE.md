@@ -39,6 +39,7 @@ This directory (`~/Documents/dev/`) is the root of a personal development worksp
 | niagara-llm | External LLM analysis brain for Niagara BAS (oBIX/REST-BQL/SQL); real-time + history FDD, Claude diagnosis | v1 |
 | sanguine | Internal Levels.com-style blood-lab results viewer (PDF/CSV + Apple Health import, optimal vs standard ranges, trends, biomarker detail pages, PhenoAge biological age, vitals, Claude-generated cached explanations) | v1 |
 | siem-forwarder | Niagara 4 JACE module forwarding point/alarm/audit events to a SIEM over RFC 5424 syslog/TLS, non-interference design | Skeleton/design-complete |
+| scribe | SSI Scribe — self-hosted AI meeting note taker: Whisper/MLX ASR, pyannote diarization, Ollama gpt-oss:120b summaries (own repo: github.com/ogreen111/scribe) | v0.1 |
 | scripts | Mount automation + Bash utilities | Active |
 
 ---
@@ -103,6 +104,7 @@ Reserved ports for the dev portfolio. Each app binds its assigned port on startu
 | 8080 | digital-twin | Flask HMI | `cd digital-twin/frcs-digital-twin && WEB_HMI_PORT=8080 .venv/bin/python -m twin.cli run` |
 | 8081 | digital-twin | Niagara oBIX server (emulator) | `cd digital-twin/frcs-digital-twin && TWIN_ENABLE_NIAGARA=1 .venv/bin/python -m twin.cli run` (gated by `TWIN_ENABLE_NIAGARA=1`) |
 | 8082 | digital-twin | Niagara REST/BQL endpoint (emulator) | same process as oBIX above (`NIAGARA_BQL_PORT`) |
+| 8736 | scribe | FastAPI + uvicorn | `cd scribe && .venv/bin/ssi-notes serve` |
 | 8765 | email-processor | FastAPI + uvicorn | `cd email-processor && uv run email-intake serve` |
 | 8767 | past-performance | FastAPI + uvicorn | `cd past-performance && .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8767` |
 | 8768 | project-tracking | FastAPI + uvicorn | `cd project-tracking && PT_PORT=8768 .venv/bin/python -m webapp` |
