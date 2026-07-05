@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Dev-portfolio index server (portfolio_server.py) — loopback only; Traefik
+  terminates TLS on :8737 in front (see scribe/deploy/traefik/).
+
+  Install (COPY, do not symlink — launchd skips symlinked plists at login):
+    cp deploy/com.ssi.portfolio.plist ~/Library/LaunchAgents/
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.ssi.portfolio.plist
+
+  Restart after changes:
+    launchctl kickstart -k gui/$(id -u)/com.ssi.portfolio
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.ssi.portfolio</string>
+  <key>ProgramArguments</key>
+  <array>
+    <!-- Homebrew python: it holds the TCC Documents-folder grant on this box;
+         the CommandLineTools /usr/bin/python3 gets EPERM under launchd. -->
+    <string>/opt/homebrew/bin/python3</string>
+    <string>/Users/ogreen/Documents/dev/portfolio_server.py</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PORTFOLIO_HOST</key>
+    <string>127.0.0.1</string>
+    <!-- Internal loopback port; Traefik serves the public https://:8737. -->
+    <key>PORTFOLIO_PORT</key>
+    <string>18737</string>
+  </dict>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
+  <!-- Logs stay OUT of ~/Documents (TCC xattrs kill launchd spawns). -->
+  <key>StandardOutPath</key>
+  <string>/Users/ogreen/Library/Logs/ssi-portfolio/server.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/ogreen/Library/Logs/ssi-portfolio/server.log</string>
+</dict>
+</plist>

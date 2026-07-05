@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dev Portfolio — Project Index</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --card: #ffffff;
+    --text: #1c2733;
+    --muted: #5b6b7b;
+    --line: #e3e8ee;
+    --accent: #0e6dbd;
+    --chip-bg: #eef3f8;
+    --chip-text: #0e6dbd;
+    --chip-border: #d3e2f0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12171d;
+      --card: #1b232c;
+      --text: #e4eaf0;
+      --muted: #93a3b3;
+      --line: #2a3541;
+      --accent: #5aa9e6;
+      --chip-bg: #223142;
+      --chip-text: #8ec4ec;
+      --chip-border: #2f4356;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.45;
+  }
+  header {
+    padding: 2.2rem 1.5rem 1.2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  h1 { margin: 0 0 .25rem; font-size: 1.7rem; }
+  .subtitle { color: var(--muted); margin: 0 0 1rem; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; }
+  #filter {
+    flex: 1 1 260px; max-width: 420px;
+    padding: .55rem .8rem;
+    border: 1px solid var(--line); border-radius: 8px;
+    background: var(--card); color: var(--text);
+    font-size: .95rem;
+  }
+  .portfolio-links { display: flex; flex-wrap: wrap; gap: .4rem; }
+  main { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem 3rem; }
+  section h2 {
+    font-size: 1.05rem; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--muted); border-bottom: 1px solid var(--line);
+    padding-bottom: .4rem; margin: 2rem 0 1rem;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+    gap: .9rem;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: .9rem 1rem;
+    display: flex; flex-direction: column; gap: .5rem;
+  }
+  .card-head { display: flex; align-items: baseline; gap: .6rem; }
+  .card-head h3 { margin: 0; font-size: 1.02rem; }
+  .status {
+    font-size: .68rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em;
+    padding: .1rem .5rem; border-radius: 99px; white-space: nowrap;
+  }
+  .st-prod   { background: #d9f2e2; color: #14683a; }
+  .st-active { background: #dbeafe; color: #1d4ed8; }
+  .st-early  { background: #fdf0d5; color: #92600a; }
+  .st-ref    { background: #e8e8ee; color: #4b4b60; }
+  @media (prefers-color-scheme: dark) {
+    .st-prod   { background: #163f2a; color: #7fd6a4; }
+    .st-active { background: #1c3355; color: #93bffa; }
+    .st-early  { background: #4a3813; color: #f0c674; }
+    .st-ref    { background: #32323e; color: #b5b5c9; }
+  }
+  .desc { color: var(--muted); font-size: .88rem; margin: 0; flex: 1; }
+  .links { display: flex; flex-wrap: wrap; gap: .35rem; }
+  .links a, .portfolio-links a {
+    font-size: .78rem; text-decoration: none;
+    background: var(--chip-bg); color: var(--chip-text);
+    border: 1px solid var(--chip-border);
+    padding: .18rem .55rem; border-radius: 6px;
+  }
+  .links a:hover, .portfolio-links a:hover { border-color: var(--accent); }
+  .links a.app { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .hidden { display: none; }
+  footer { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem 2rem; color: var(--muted); font-size: .8rem; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Dev Portfolio</h1>
+  <p class="subtitle">32 projects — DoD/MILCON cyber proposal automation, BAS/OT network engineering, and SSi internal tools. App links require the local server to be running (see the Port Map).</p>
+  <div class="toolbar">
+    <input id="filter" type="search" placeholder="Filter projects… (name, description, status)">
+    <nav class="portfolio-links">
+      <a href="README.md">Portfolio README</a>
+      <a href="PROJECTS_SUMMARY.md">Projects Summary</a>
+      <a href="DESIGN.docx">Portfolio Design (docx)</a>
+      <a href="PORTS.md">Port Map</a>
+      <a href="https://github.com/ogreen111/dev-portfolio">GitHub (dev-portfolio)</a>
+    </nav>
+  </div>
+</header>
+<main>
+
+<section data-section>
+  <h2>DoD / MILCON Cyber Proposal Automation</h2>
+  <div class="grid">
+
+    <div class="card"><div class="card-head"><h3>rfp-automation</h3><span class="status st-prod">Production</span></div>
+      <p class="desc">DoD RFP intake, scope extraction, and proposal drafting pipeline with dashboard.</p>
+      <div class="links">
+        <a class="app" href="http://localhost:8008">App :8008</a>
+        <a href="rfp-automation/README.md">README</a>
+        <a href="rfp-automation/DESIGN.md">Design</a>
+        <a href="rfp-automation/DESIGN.docx">Design (docx)</a>
+        <a href="rfp-automation/CHANGELOG.md">Changelog</a>
+        <a href="rfp-automation/docs/">Docs/</a>
+        <a href="https://github.com/ogreen111/rfp-automation">GitHub</a>
+      </div>
+    </div>
+
+    <div class="card"><div class="card-head"><h3>cyber-proposals</h3><span class="status st-prod">Production</span></div>
+      <p class="desc">Shared cybersecurity proposal engine for the MRR and UMCS MATOCs.</p>
+      <div class="links">
+        <a href="cyber-proposals/README.md">README</a>
+        <a href="cyber-proposals/docs/architecture.md">Architecture</a>
+        <a href="cyber-proposals/docs/architecture.docx">Architecture (docx)</a>
+        <a href="https://github.com/ogreen111/cyber-proposals">GitHub</a>
+      </div>
+    </div>
+
+    <div class="card"><div class="card-head"><h3>cyber-estimates</h3><span class="status st-active">Active</span></div>
+      <p class="desc">Per-solicitation proposal artifact generation built on cyber-proposals.</p>
+      <div class="links">
+        <a href="cyber-estimates/README.md">README</a>
+        <a href="cyber-estimates/ARCHITECTURE.md">Architecture</a>
+      </div>
+    </div>
+
+    <div class="card"><div class="card-head"><h3>cyber-eac-tool</h3><span class="status st-active">Active</span></div>
+      <p class="desc">Earned-value forecasting: EAC / ETC / CPI / SPI with local Excel edit server.</p>
+      <div class="links">
+        <a class="app" href="http://localhost:8010">App :8010</a>
+        <a href="cyber-eac-tool/README.md">README</a>
+      </div>
+    </div>
+
+    <div class="card"><div class="card-head"><h3>cyber-artifact-gen</h3><span class="status st-ref">Utility</span></div>
+      <p class="desc">Converts BAS point data into diagrams and schematics for proposal artifacts.</p>
+      <div class="links">
+        <a href="cyber-artifact-gen/">Folder</a>
+        <a href="https://github.com/ogreen111/cyber-artifact-gen">GitHub</a>
+      </div>
+    </div>
+
+    <div class="card"><div class="card-head"><h3>past-performance</h3><span class="status st-active">v1</span></div>
+      <p class="desc">SSi past-performance document search and extraction.</p>
+      <div class="links">
+        <a class="app" href="http://localhost:8767">App :8767</a>
+        <a href="past-performance/README.md">README</a>
+        <a href="past-performance/design.docx">Design (docx)</a>
+        <a href="https://github.com/ogreen111/past-performance">GitHub</a>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section data-section>
+  <h2>BAS / OT Network Engineering</h2>
+  <div class="grid">
+
+    <div class="card"><div class="card-head"><h3>network-scanner</h3><span class="status st-active">v1</span></div>
+      <p class="desc">Active network discovery and BACnet enumeration with FastAPI backend.</p>
+      <div class="links">
+        <a class="app" href="http://localhost:8000">App :8000</a>
+        <a href="network-scanner/README.md">README</a>
+        <a href="network-scanner/design.docx">Design (docx)</a>
+        <a href="https://github.com/ogreen111/network-scanner">GitHub</a>
+      </div>
+    </div>
+
+    <div class="card"><div class="card-head"><h3>ethernet-link-analyzer</h3><span class="status st-active">Phase 4</span></div>
+      <p class="desc">Passive LLDP/CDP Ethernet discovery; Raspberry Pi field appliance with touch UI, battery, and gated active tests.</p>
+      <div class="links">
+        <a href="ethernet-link-analyzer/README.md">README</a>
+        <a href="ethernet-link-analyzer/docs/architecture/">Architecture</a>
+        <a href="ethernet-link-analyzer/docs/field-test-plan.md">Field Test Plan</a>
+        <a href="ethernet-link-analyzer/docs/hardware/">Hardware</a>
+        <a href="https://github.com/ogreen111/ethernet-link-analyzer">GitHub</a>
+      </div>
+    </div>
+
+    <div class="card"><div class="card-head"><h3>virtual-devices</h3><span class="status st-active">v1</span></div>
+      <p class="desc">BACnet/IP virtual building fleet (76 devices) for integration testing.</p>
+      <div class="links">
+        <a href="virtual-devices/README.md">README</a>
+        <a href="virtual-devices/design.md">Design</a>
+        <a href="virtual-devices/design.docx">Design (docx)</a>
+        <a href="https://github.com/ogreen111/virtual-devices">GitHub</a>
+      </div>
+    </div>
+
+    <div class="card"><div class="card-head"><h3>digital-twin</h3><span class="status st-active">v1.10</span></div>
+      <p class="desc">FRCS HVAC plant digital twin with fault injection, campus multi-RTU mode, electrical model, and ~50-detector FDD.</p>
+      <div class="links">
+        <a class="app" href="http://localhost:8080">HMI :8080</a>
+        <a href="digital-twin/frcs-digital-twin/README.md">README</a>
+        <a href="digital-twin/frcs-digital-twin/DESIGN.md">Design</a>
+        <a href="digital-twin/frcs-digital-twin/CAMPUS_DESIGN.md">Campus Design</a>
+        <a href="digital-twin/frcs-digital-twin/LLM_DESIGN.md">LLM Design</a>
+        <a href="digital-twin/frcs-digital-twin/CHANGELOG.md">Changelog</a>
+      </div>
+    </div>
+
+    <div class="card"><div class="card-head"><h3>niagara-llm (CASCADE)</h3><span class="status st-active">v2</span></div>
+      <p class="desc">External LLM analysis brain for Niagara BAS (oBIX / REST-BQL / SQL): FDD + LLM diagnosis, air-gapped local LLM, Supervisor audit CLI.</p>
+      <div class="links">
+        <a class="app" href="http://localhost:8770">App :8770</a>
+        <a href="niagara-llm/README.md">README</a>
+        <a href="niagara-llm/docs/DESIGN.pdf">Design (pdf)</a>
+        <a href="niagara-llm/docs/OVERVIEW.pdf">Overview (pdf)</a>
+        <a href="niagara-llm/docs/APPLIANCE-SPEC.pdf">Appliance Spec</a>
+        <a href="https://github.com/ogreen111/niagara-llm">GitHub</a>
+      </div>
+    </div>
+
+    <div class="card"><div class="card-head"><h3>siem-forwarder</h3><span class="status st-early">Design complete</span></div>
+      <p class="desc">Niagara 4 JACE module forwarding point/alarm/audit events to a SIEM over RFC 5424 syslog/TLS.</p>
+      <div class="links">
+        <a href="siem-forwarder/README.md">README</a>
+        <a href="siem-forwarder/siemForwarder-SDD.docx">SDD (docx)</a>
+        <a href="https://github.com/ogreen111/dev-portfolio/tree/main/siem-forwarder">GitHub</a>
+      </div>
+    </div>
+
+    <div class="card"><div class="card-head"><h3>Pocket Probe</h3><span class="status st-early">Prototype</span></div>
+      <p class="desc">STM32-based LLDP/CDP keychain network probe.</p>
+      <div class="links">
+        <a href="Pocket%20Probe/README.md">README</a>
+      </div>
+    </div>
+
+    <div class="card"><div class="card-head"><h3>PRTG Import</h3><span class="status st-prod">Production</span></div>
+      <p class="desc">Bulk PRTG device import from CSV.</p>
+      <div class="links">
+        <a href="PRTG%20Import/README.md">README</a>
+        <a href="https://github.com/ogreen111/PRTG-Import">GitHub</a>
+      </div>
+    </div>
+
+    <div class="card"><div class="card-head"><h3>fulcrum-replacement</h3><span class="status st-early">Design only</span></div>
+      <p class="desc">Offline-first mobile field data collection platform (Fulcrum SaaS replacement).</p>
+      <div class="links">
+        <a href="fulcrum-replacement/DESIGN.md">Design</a>
+        <a href="fulcrum-replacement/DESIGN.docx">Design (docx)</a>
+      </div>
+    </div>
+
+    <div class="card"><div class="card-head"><h3>kml</h3><span class="status st-ref">Utility</span></div>
+      <p class="desc">KML / network topology generation utilities (JBLM).</p>
+      <div class="links">
+        <a href="kml/">Folder</a>
+      </div>
+    </div>
+
+    <div class="card"><div class="card-head"><h3>niagara-docs</h3><span class="status st-ref">Reference</span></div>
+      <p class="desc">Niagara 4.10 / 4.15 runtime binary cache and Supervisor backup (dev reference).</p>
+      <div class="links">
+        <a href="niagara-docs/">Folder</a>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section data-section>
+  <h2>SSi Internal Productivity</h2>
+  <div class="grid">
+
+    <div class="card"><div class="card-head"><h3>email-processor</h3><span class="status st-prod">Production</span></div>
+      <p class="desc">Inbound RFI/RFQ/RFP email triage and summarization.</p>
+      <div class="links">
+        <a class="app" href="http://localhost:8765">App :8765</a>
+        <a href="email-processor/README.md">README</a>
+        <a href="email-processor/DESIGN.md">Design</a>
+        <a href="email-processor/docs/design.docx">Design (docx)</a>
+        <a href="email-processor/docs/">Docs/</a>
+        <a href="https://github.com/ogreen111/email-processor">GitHub</a>
+      </div>
+    </div>
+
+    <div class="card"><div class="card-head"><h3>project-tracking</h3><span class="status st-active">v1</span></div>
+      <p class="desc">Job budget/cost/labor/submittal dashboard; React v2 UI with Planner/SharePoint Graph sync.</p>
+      <div class="links">
+        <a class="app" href="http://localhost:8768">App :8768</a>
+        <a href="project-tracking/README.md">README</a>
+        <a href="project-tracking/DESIGN.md">Design</a>
+        <a href="project-tracking/ARCHITECTURE.md">Architecture</a>
+        <a href="project-tracking/USER_GUIDE.md">User Guide</a>
+        <a href="project-tracking/USER_GUIDE.docx">User Guide (docx)</a>
+        <a href="https://github.com/ogreen111/project-tracking">GitHub</a>
+      </div>
+    </div>
+
+    <div class="card"><div class="card-head"><h3>project-monitor</h3><span class="status st-active">v2</span></div>
+      <p class="desc">Project folder + Outlook email → PM status via entity registers (contracts, mods, POs, invoices, pay apps).</p>
+      <div class="links">
+        <a class="app" href="http://localhost:8769">App :8769</a>
+        <a href="project-monitor/README.md">README</a>
+        <a href="https://github.com/ogreen111/project-monitor">GitHub</a>
+      </div>
+    </div>
+
+    <div class="card"><div class="card-head"><h3>cyber-brain</h3><span class="status st-early">v0.1</span></div>
+      <p class="desc">SSi cyber group knowledge system: Graph ingestion (SharePoint/Planner/Teams/email) → per-project event stream, briefs, cited Q&amp;A.</p>
+      <div class="links">
+        <a class="app" href="http://localhost:8772">App :8772</a>
+        <a href="cyber-brain/README.md">README</a>
+        <a href="cyber-brain/docs/">Docs/</a>
+        <a href="https://github.com/ogreen111/cyber-brain">GitHub</a>
+      </div>
+    </div>
+
+    <div class="card"><div class="card-head"><h3>scribe</h3><span class="status st-early">v0.1</span></div>
+      <p class="desc">SSI Scribe — self-hosted AI meeting note taker: Whisper/MLX ASR, pyannote diarization, Ollama summaries.</p>
+      <div class="links">
+        <a class="app" href="https://localhost:8736">App :8736</a>
+        <a href="scribe/README.md">README</a>
+        <a href="scribe/docs/DESIGN.md">Design</a>
+        <a href="scribe/docs/USER_GUIDE.md">User Guide</a>
+        <a href="scribe/docs/USER_GUIDE.docx">User Guide (docx)</a>
+        <a href="https://github.com/ogreen111/scribe">GitHub</a>
+      </div>
+    </div>
+
+    <div class="card"><div class="card-head"><h3>cert-manager</h3><span class="status st-early">v0</span></div>
+      <p class="desc">Employee training certification tracker (FastAPI + React/Vite).</p>
+      <div class="links">
+        <a class="app" href="http://localhost:5173">App :5173</a>
+        <a href="cert-manager/README.md">README</a>
+        <a href="cert-manager/design.docx">Design (docx)</a>
+        <a href="https://github.com/ogreen111/cert-manager">GitHub</a>
+      </div>
+    </div>
+
+    <div class="card"><div class="card-head"><h3>daily-summary</h3><span class="status st-early">v0</span></div>
+      <p class="desc">Power Automate daily email digest solution.</p>
+      <div class="links">
+        <a href="daily-summary/">Folder</a>
+        <a href="https://github.com/ogreen111/daily-summary">GitHub</a>
+      </div>
+    </div>
+
+    <div class="card"><div class="card-head"><h3>outlook-followup</h3><span class="status st-early">Stub</span></div>
+      <p class="desc">Outlook follow-up automation add-in.</p>
+      <div class="links">
+        <a href="outlook-followup/followup-addin/README.md">README</a>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section data-section>
+  <h2>Personal &amp; Experimental</h2>
+  <div class="grid">
+
+    <div class="card"><div class="card-head"><h3>sanguine</h3><span class="status st-active">v1</span></div>
+      <p class="desc">Levels.com-style blood-lab results viewer: PDF/CSV + Apple Health import, optimal ranges, trends, PhenoAge, AI explanations.</p>
+      <div class="links">
+        <a class="app" href="http://localhost:8771">App :8771</a>
+        <a href="sanguine/README.md">README</a>
+        <a href="https://github.com/ogreen111/sanguine">GitHub</a>
+      </div>
+    </div>
+
+    <div class="card"><div class="card-head"><h3>floor-plan-editor</h3><span class="status st-active">Active</span></div>
+      <p class="desc">2D/3D floor plan editor with Home Assistant card export.</p>
+      <div class="links">
+        <a class="app" href="floor-plan-editor/floorplan-studio.html">Open Editor</a>
+        <a href="https://github.com/ogreen111/floor-plan-editor">GitHub</a>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section data-section>
+  <h2>Shared Libraries &amp; Dev Infrastructure</h2>
+  <div class="grid">
+
+    <div class="card"><div class="card-head"><h3>account-store</h3><span class="status st-active">Library</span></div>
+      <p class="desc">Shared user account management library (rfp-automation, project-tracking, email-processor, project-monitor).</p>
+      <div class="links">
+        <a href="account-store/README.md">README</a>
+        <a href="https://github.com/ogreen111/account-store">GitHub</a>
+      </div>
+    </div>
+
+    <div class="card"><div class="card-head"><h3>ssi-design-system</h3><span class="status st-early">v0.1</span></div>
+      <p class="desc">SSi brand tokens, CSS, and documentation generation.</p>
+      <div class="links">
+        <a href="ssi-design-system/README.md">README</a>
+        <a href="ssi-design-system/DESIGN.md">Design</a>
+        <a href="ssi-design-system/CHANGELOG.md">Changelog</a>
+        <a href="https://github.com/ogreen111/ssi-design-system">GitHub</a>
+      </div>
+    </div>
+
+    <div class="card"><div class="card-head"><h3>claude-sync</h3><span class="status st-active">v1</span></div>
+      <p class="desc">Syncthing conflict resolver for ~/.claude (daemon on 127.0.0.1:8866).</p>
+      <div class="links">
+        <a href="claude-sync/README.md">README</a>
+        <a href="claude-sync/docs/design.docx">Design (docx)</a>
+        <a href="claude-sync/docs/logging.md">Logging</a>
+        <a href="https://github.com/ogreen111/claude-sync">GitHub</a>
+      </div>
+    </div>
+
+    <div class="card"><div class="card-head"><h3>claude-memory-compiler</h3><span class="status st-early">v0</span></div>
+      <p class="desc">Hook-captured Claude conversations compiled into knowledge articles.</p>
+      <div class="links">
+        <a href="claude-memory-compiler/README.md">README</a>
+        <a href="https://github.com/coleam00/claude-memory-compiler">GitHub (upstream)</a>
+      </div>
+    </div>
+
+    <div class="card"><div class="card-head"><h3>scripts</h3><span class="status st-active">Active</span></div>
+      <p class="desc">Mount automation and Bash utilities.</p>
+      <div class="links">
+        <a href="scripts/README.md">README</a>
+        <a href="https://github.com/ogreen111/og-scripts">GitHub</a>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+</main>
+<footer>
+  Static index of ~/Documents/dev — served at https://&lt;host&gt;:8737 (Traefik → portfolio_server.py on loopback :18737), or open the file directly (file://). App links require the corresponding server to be running; see <a href="PORTS.md">PORTS.md</a>.
+</footer>
+<script>
+  const input = document.getElementById('filter');
+  input.addEventListener('input', () => {
+    const q = input.value.trim().toLowerCase();
+    document.querySelectorAll('.card').forEach(card => {
+      card.classList.toggle('hidden', q && !card.textContent.toLowerCase().includes(q));
+    });
+    document.querySelectorAll('[data-section]').forEach(sec => {
+      sec.classList.toggle('hidden', !sec.querySelector('.card:not(.hidden)'));
+    });
+  });
+</script>
+</body>
+</html>
