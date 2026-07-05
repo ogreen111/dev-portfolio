@@ -107,7 +107,7 @@ Reserved ports for the dev portfolio. Each app binds its assigned port on startu
 | 8080 | digital-twin | Flask HMI | `cd digital-twin/frcs-digital-twin && WEB_HMI_PORT=8080 .venv/bin/python -m twin.cli run` |
 | 8081 | digital-twin | Niagara oBIX server (emulator) | `cd digital-twin/frcs-digital-twin && TWIN_ENABLE_NIAGARA=1 .venv/bin/python -m twin.cli run` (gated by `TWIN_ENABLE_NIAGARA=1`) |
 | 8082 | digital-twin | Niagara REST/BQL endpoint (emulator) | same process as oBIX above (`NIAGARA_BQL_PORT`) |
-| 8736 | scribe | FastAPI + uvicorn | `cd scribe && .venv/bin/ssi-scribe serve` |
+| 8736 | scribe | Traefik TLS → app on 127.0.0.1:18736 | LaunchAgents `com.ssi.traefik` + `com.ssi.scribe` (https://host:8736) |
 | 8765 | email-processor | FastAPI + uvicorn | `cd email-processor && uv run email-intake serve` |
 | 8767 | past-performance | FastAPI + uvicorn | `cd past-performance && .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8767` |
 | 8768 | project-tracking | FastAPI + uvicorn | `cd project-tracking && PT_PORT=8768 .venv/bin/python -m webapp` |
