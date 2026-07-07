@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
-  Dev-portfolio index server (portfolio_server.py) — loopback only; Traefik
-  terminates TLS on :8737 in front (see scribe/deploy/traefik/).
+  Dev-portfolio index server (portfolio_server.py) — terminates its own TLS
+  on :8737 (no reverse proxy; Traefik retired). Shares the mkcert cert at
+  ~/Library/SSIScribe/tls/ (covers localhost + LAN + Tailscale IPs).
 
   Install (COPY, do not symlink — launchd skips symlinked plists at login):
     cp deploy/com.ssi.portfolio.plist ~/Library/LaunchAgents/
@@ -24,11 +25,16 @@
   </array>
   <key>EnvironmentVariables</key>
   <dict>
+    <!-- Bind all interfaces and serve TLS directly on the well-known port. -->
     <key>PORTFOLIO_HOST</key>
-    <string>127.0.0.1</string>
-    <!-- Internal loopback port; Traefik serves the public https://:8737. -->
+    <string>0.0.0.0</string>
     <key>PORTFOLIO_PORT</key>
-    <string>18737</string>
+    <string>8737</string>
+    <!-- Shared mkcert cert (same one Scribe uses). -->
+    <key>PORTFOLIO_SSL_CERTFILE</key>
+    <string>/Users/ogreen/Library/SSIScribe/tls/scribe.pem</string>
+    <key>PORTFOLIO_SSL_KEYFILE</key>
+    <string>/Users/ogreen/Library/SSIScribe/tls/scribe-key.pem</string>
   </dict>
   <key>RunAtLoad</key>
   <true/>

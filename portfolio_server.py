@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Read-only doc server for the portfolio index (index.html).
 
-Serves ~/Documents/dev so the portfolio site can be exposed off-box via
-Traefik (TLS on :8737 -> this server on loopback :18737). The dev tree is
-full of things that must not leave the box (.env files, SQLite databases,
-.git internals), so this serves an allowlist of doc/image file types only
-and refuses any path with a dot-prefixed component.
+Serves ~/Documents/dev so the portfolio site is reachable on the LAN. It
+terminates its own TLS (PORTFOLIO_SSL_CERTFILE/KEYFILE, mkcert cert) — no
+reverse proxy. The dev tree is full of things that must not leave the box
+(.env files, SQLite databases, .git internals), so this serves an allowlist
+of doc/image file types only and refuses any path with a dot-prefixed
+component.
 
 Run: PORTFOLIO_PORT=18737 python3 portfolio_server.py
 """
@@ -76,8 +77,21 @@ class DocHandler(SimpleHTTPRequestHandler):
 def main():
     host = os.environ.get("PORTFOLIO_HOST", "127.0.0.1")
     port = int(os.environ.get("PORTFOLIO_PORT", "18737"))
+    certfile = os.environ.get("PORTFOLIO_SSL_CERTFILE", "")
+    keyfile = os.environ.get("PORTFOLIO_SSL_KEYFILE", "")
     server = ThreadingHTTPServer((host, port), partial(DocHandler, directory=ROOT))
-    print(f"portfolio server on http://{host}:{port} serving {ROOT}")
+    scheme = "http"
+    if certfile and keyfile:
+        # Terminate TLS here — no reverse proxy. LAN browsers reach this
+        # directly (mkcert cert); floor the version at TLS 1.2.
+        import ssl
+
+        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ctx.minimum_version = ssl.TLSVersion.TLSv1_2
+        ctx.load_cert_chain(certfile, keyfile)
+        server.socket = ctx.wrap_socket(server.socket, server_side=True)
+        scheme = "https"
+    print(f"portfolio server on {scheme}://{host}:{port} serving {ROOT}")
     server.serve_forever()
 
 
