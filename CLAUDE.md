@@ -111,7 +111,7 @@ Reserved ports for the dev portfolio. Each app binds its assigned port on startu
 | 8737 | dev-portfolio | portfolio index/doc server terminates its own TLS (mkcert cert) — no proxy | LaunchAgent `com.ssi.portfolio` (https://host:8737) |
 | 8765 | email-processor | FastAPI + uvicorn | `cd email-processor && uv run email-intake serve` |
 | 8767 | past-performance | FastAPI + uvicorn | `cd past-performance && .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8767` |
-| 8768 | project-tracking | FastAPI + uvicorn | `cd project-tracking && PT_PORT=8768 .venv/bin/python -m webapp` |
+| 443 | project-tracking | FastAPI + uvicorn, terminates its own TLS (mkcert cert) — no proxy (Caddy retired) | `cd project-tracking && PT_PORT=443 PT_SSL_CERTFILE=/opt/homebrew/etc/project-tracking-tls/cert.pem PT_SSL_KEYFILE=/opt/homebrew/etc/project-tracking-tls/key.pem PT_SECURE_COOKIES=1 .venv/bin/python -m webapp` (https://og-work-mac-studio.local/) |
 | 8769 | project-monitor | FastAPI + uvicorn | `cd project-monitor && PM_PORT=8769 .venv/bin/project-monitor run` |
 | 8770 | niagara-llm | FastAPI + dashboard | `cd niagara-llm && uv run niagara-llm run` |
 | 8771 | sanguine | FastAPI + dashboard | `cd sanguine && uv run sanguine run` (reads `SANGUINE_PORT`) |
