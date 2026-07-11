@@ -1,6 +1,6 @@
 # Dev Portfolio — Claude Context
 
-This directory (`~/Documents/dev/`) is the root of a personal development workspace containing 32 projects built around three core domains:
+This directory (`~/Documents/dev/`) is the root of a personal development workspace containing 30 projects built around three core domains:
 
 1. **DoD/MILCON cybersecurity proposal automation** — RFP intake → pricing → tech proposal → EAC tracking
 2. **BAS/OT network engineering** — passive discovery, BACnet simulation, site scanning, hardware prototypes
@@ -12,10 +12,8 @@ This directory (`~/Documents/dev/`) is the root of a personal development worksp
 
 | Project | Purpose | Status |
 |---|---|---|
-| rfp-automation | DoD RFP intake, scope extraction, proposal drafting | Production |
-| cyber-proposals | Shared proposal engine (MRR + UMCS MATOCs) | Production |
-| cyber-estimates | Per-solicitation proposal artifact generation | Active |
-| cyber-eac-tool | Earned-value forecasting (EAC/ETC/CPI/SPI) | Active |
+| rfp-automation | DoD RFP intake, scope extraction, proposal drafting; vendors the MRR/UMCS pricing + tech-proposal engine | Production |
+| cyber-estimates | Per-solicitation proposal artifact generation (standalone; navfac-cyber-proposal skill) | Active |
 | cyber-artifact-gen | BAS→diagram/schematic conversion for proposals | Utility |
 | email-processor | Inbound RFI/RFQ/RFP email triage and summarization | Production |
 | outlook-followup | Outlook follow-up automation | Stub |
@@ -51,7 +49,6 @@ This directory (`~/Documents/dev/`) is the root of a personal development worksp
 
 - **account-store** → consumed by: rfp-automation, project-tracking, email-processor, project-monitor
 - **ssi-design-system** → consumed by: project-tracking, (planned for all SSi web apps)
-- **cyber-proposals** → consumed by: cyber-estimates, rfp-automation (adapter)
 - **virtual-devices** → used by: network-scanner for integration testing
 
 ---
@@ -103,7 +100,6 @@ Reserved ports for the dev portfolio. Each app binds its assigned port on startu
 | 8000 | network-scanner | FastAPI backend | `cd network-scanner && .venv/bin/uvicorn scanner.app:app --host 0.0.0.0 --port 8000` |
 | 8002 | cert-manager | FastAPI backend | `cd cert-manager/backend && .venv/bin/uvicorn app.main:app --port 8002` |
 | 8008 | rfp-automation | dashboard (stdlib HTTP) | `cd rfp-automation && .venv/bin/rfp-auto dashboard` (reads `RFP_DASHBOARD_PORT` from `.env`) |
-| 8010 | cyber-eac-tool | local Excel/edit server | `cd cyber-eac-tool && .venv/bin/python serve.py --port 8010` |
 | 8080 | digital-twin | Flask HMI | `cd digital-twin/frcs-digital-twin && WEB_HMI_PORT=8080 .venv/bin/python -m twin.cli run` |
 | 8081 | digital-twin | Niagara oBIX server (emulator) | `cd digital-twin/frcs-digital-twin && TWIN_ENABLE_NIAGARA=1 .venv/bin/python -m twin.cli run` (gated by `TWIN_ENABLE_NIAGARA=1`) |
 | 8082 | digital-twin | Niagara REST/BQL endpoint (emulator) | same process as oBIX above (`NIAGARA_BQL_PORT`) |

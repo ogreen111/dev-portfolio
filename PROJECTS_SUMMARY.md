@@ -34,20 +34,10 @@ A summary of all projects under `/Users/ogreen/Documents/dev/`, generated 2026-0
 **Stack:** Python scripts, ad-hoc JSON/CSV processing.
 **Notes:** Utility scripts for document generation; minimal documentation.
 
-## cyber-eac-tool
-**Purpose:** Browser-based calculator for earned-value forecasting on DoD cyber projects. Derives EAC, ETC, CPI, SPI, and risk-adjusted forecasts with Excel export.
-**Stack:** JavaScript (frontend), Python (serve.py), openpyxl.
-**Notes:** Standalone tool serving on localhost:8010; Sage Contractor integration for actuals import.
-
 ## cyber-estimates
 **Purpose:** Builds DoD MILCON cybersecurity proposal artifacts (pricing workbooks + scope reviews) for solicitations referencing UFGS 25 05 11 and 25 08 11.
 **Stack:** Python (openpyxl), Node.js (docx), templates + UFGS reference data.
-**Notes:** Working directory for proposal generation; references the cyber-proposals skill.
-
-## cyber-proposals
-**Purpose:** Reusable DoD MILCON cybersecurity proposal toolkit for two USACE MATOCs (MRR + UMCS). Shared engine for pricing + scope extraction + tech proposal generation.
-**Stack:** Python (Claude API, openpyxl), Node.js (docx), structured scope JSON, AI-driven extraction.
-**Notes:** Multi-MATOC organization with per-MATOC pricing defaults and role codes; prompt caching enabled.
+**Notes:** Standalone working directory for proposal generation; carries the portable navfac-cyber-proposal skill bundle.
 
 ## digital-twin
 **Purpose:** FRCS digital twin of a small commercial HVAC plant. Synthetic physics + BACnet/IP emulation with bundled Flask/HTMX HMI for operator training and fault-injection scenarios.
@@ -107,7 +97,7 @@ A summary of all projects under `/Users/ogreen/Documents/dev/`, generated 2026-0
 ## rfp-automation
 **Purpose:** Automated extraction, analysis, and proposal generation for DoD/MILCON cybersecurity RFPs. Parses specs/drawings, classifies cyber governance (25 05 11 / 25 08 11), extracts scope, builds submittal matrices, generates drafts.
 **Stack:** Python (PyMuPDF, python-docx, openpyxl, Playwright, Claude API), FastAPI dashboard.
-**Notes:** Production system with 1800+ tests; dashboard at port 8108; cyber-proposals adapter hooks in.
+**Notes:** Production system with 1800+ tests; dashboard at port 8108; vendors the MRR/UMCS pricing + tech-proposal engine (formerly the separate cyber-proposals repo).
 
 ## scripts
 **Purpose:** Parent workspace for script-based projects and utilities. Currently contains mount automation (sshfs mounts to Ubuntu Docker + UDM Pro).

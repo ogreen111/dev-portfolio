@@ -2,7 +2,7 @@
 
 Personal development workspace for tools and systems built around DoD/MILCON cybersecurity proposals, BAS/OT network engineering, and internal SSi productivity automation.
 
-**24 projects** · Last updated 2026-05-25
+**22 projects** · Last updated 2026-07-11
 
 ---
 
@@ -11,9 +11,7 @@ Personal development workspace for tools and systems built around DoD/MILCON cyb
 | Project | Category | Stack | Status |
 |---|---|---|---|
 | [rfp-automation](#rfp-automation) | Proposal Automation | Python, Claude API, FastAPI | Production |
-| [cyber-proposals](#cyber-proposals) | Proposal Automation | Python, Claude API, Node.js | Production |
 | [cyber-estimates](#cyber-estimates) | Proposal Automation | Python, Node.js | Active |
-| [cyber-eac-tool](#cyber-eac-tool) | Proposal Automation | JS, Python | Active |
 | [cyber-artifact-gen](#cyber-artifact-gen) | Proposal Automation | Python | Utility |
 | [email-processor](#email-processor) | Document Automation | Python, FastAPI, Playwright | Production |
 | [email-monitor](#email-monitor) | Document Automation | Python | Stub |
@@ -49,14 +47,8 @@ Tools that automate the full DoD/MILCON cybersecurity proposal lifecycle — fro
 #### rfp-automation
 Automated extraction, analysis, and proposal generation for DoD/MILCON cybersecurity RFPs. Parses specs and drawings, classifies cyber governance (UFGS 25 05 11 / 25 08 11), extracts scope, builds submittal matrices, and generates draft proposals. **Stack:** Python (PyMuPDF, python-docx, openpyxl, Playwright, Claude API), FastAPI dashboard (port 8108). 1800+ tests.
 
-#### cyber-proposals
-Reusable proposal engine shared across two USACE MATOCs (MRR + UMCS). Handles pricing, scope extraction, and tech proposal generation with per-MATOC defaults and prompt-cached Claude API calls. **Stack:** Python (Claude API, openpyxl), Node.js (docx).
-
 #### cyber-estimates
-Working directory for building individual DoD MILCON cybersecurity proposal artifacts — pricing workbooks and scope reviews for active solicitations. Consumes the cyber-proposals engine. **Stack:** Python (openpyxl), Node.js (docx).
-
-#### cyber-eac-tool
-Browser-based earned-value forecasting calculator for DoD cyber projects. Derives EAC, ETC, CPI, SPI, and risk-adjusted forecasts; exports to Excel. Sage Contractor integration for actuals import. **Stack:** JavaScript (frontend), Python (serve.py), openpyxl. Serves on localhost:8010.
+Working directory for building individual DoD MILCON cybersecurity proposal artifacts — pricing workbooks and scope reviews for active solicitations. Standalone; carries the portable `navfac-cyber-proposal` skill bundle. **Stack:** Python (openpyxl), Node.js (docx).
 
 #### cyber-artifact-gen
 Converts Niagara BAS network exports to hardware/software diagrams and network schematics for use in DoD cyber proposals. **Stack:** Python scripts, JSON/CSV processing.
@@ -164,9 +156,6 @@ account-store  ←─── rfp-automation
 
 ssi-design-system ←─── project-tracking
                   ←─── (all SSi web apps)
-
-cyber-proposals ←─── cyber-estimates
-                ←─── rfp-automation (adapter)
 
 virtual-devices ←─── network-scanner (integration tests)
 digital-twin    ←─── (standalone BACnet test target)
