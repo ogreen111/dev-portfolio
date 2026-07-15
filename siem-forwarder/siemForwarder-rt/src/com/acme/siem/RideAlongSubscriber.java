@@ -256,8 +256,15 @@ final class RideAlongSubscriber
     }
     catch (Exception ex)
     {
+      // Release any classes already attached before the failure, otherwise the
+      // subscriber would keep firing onAlarm() after we drop the reference and
+      // stop() could no longer clean it up.
       log.warning("alarm forwarding disabled (setup failed): " + ex);
-      alarmSub = null;
+      if (alarmSub != null)
+      {
+        try { alarmSub.unsubscribeAll(); } catch (Exception ignore) {}
+        alarmSub = null;
+      }
     }
   }
 
