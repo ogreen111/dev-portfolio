@@ -230,16 +230,34 @@ final class RideAlongSubscriber
    */
   private void subscribeAlarms()
   {
-    BAlarmService as = (BAlarmService)Sys.getService(BAlarmService.TYPE);
-    if (as == null) { log.trace("no AlarmService; alarm forwarding disabled"); return; }
+    // Fail-open: alarm forwarding is best-effort and must NEVER abort the
+    // service (which would kill point forwarding too). Sys.getService(Type)
+    // THROWS ServiceNotFoundException when no alarm service is registered, so we
+    // use getServices() (returns an empty array, never throws) and wrap the
+    // whole setup so any surprise just disables alarms.
+    try
+    {
+      BComponent[] found = Sys.getServices(BAlarmService.TYPE);
+      if (found == null || found.length == 0)
+      {
+        log.trace("no AlarmService; alarm forwarding disabled");
+        return;
+      }
+      BAlarmService as = (BAlarmService)found[0];
 
-    alarmSub = new Subscriber()
+      alarmSub = new Subscriber()
+      {
+        @Override public void event(BComponentEvent e) { onAlarm(e); }
+      };
+      for (BAlarmClass ac : as.getAlarmClasses())
+      {
+        if (ac != null) alarmSub.subscribe(ac);
+      }
+    }
+    catch (Exception ex)
     {
-      @Override public void event(BComponentEvent e) { onAlarm(e); }
-    };
-    for (BAlarmClass ac : as.getAlarmClasses())
-    {
-      if (ac != null) alarmSub.subscribe(ac);
+      log.warning("alarm forwarding disabled (setup failed): " + ex);
+      alarmSub = null;
     }
   }
 
