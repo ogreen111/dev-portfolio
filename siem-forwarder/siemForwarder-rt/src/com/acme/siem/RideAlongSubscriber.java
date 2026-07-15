@@ -1,5 +1,8 @@
 package com.acme.siem;
 
+import javax.baja.alarm.BAlarmClass;
+import javax.baja.alarm.BAlarmRecord;
+import javax.baja.alarm.BAlarmService;
 import javax.baja.control.BControlPoint;
 import javax.baja.log.Log;
 import javax.baja.status.BStatusValue;
@@ -48,10 +51,17 @@ final class RideAlongSubscriber
     @Override public void event(BComponentEvent e) { onCov(e); }
   };
 
-  // Points we're currently riding along on, and the last monotonic tick we
+  // Points we're currently riding along on, and the last monotonic nanoTime we
   // forwarded each (for the per-point min-interval deadband). Doubles as the
-  // attached-set; keyed by Handle so it survives renames.
-  private final ConcurrentHashMap<Handle,Long> lastSentByPoint = new ConcurrentHashMap<>();
+  // attached-set; keyed by the component handle. BComponent.getHandle() returns
+  // an opaque, rename-stable Object (there is no javax.baja.sys.Handle type), so
+  // the key type is Object.
+  private final ConcurrentHashMap<Object,Long> lastSentByPoint = new ConcurrentHashMap<>();
+
+  // Dedicated subscriber for alarm-class topics. Kept separate from `sub` so the
+  // ride-along point logic and the alarm logic never tangle in one event().
+  // Transient: attached in start(), dropped in stop(); nothing written to config.
+  private Subscriber alarmSub;
 
   private Clock.Ticket ticket;
   private boolean alarmAuditHooked;
@@ -72,6 +82,11 @@ final class RideAlongSubscriber
   {
     if (ticket != null) { ticket.cancel(); ticket = null; }
     try { sub.unsubscribeAll(); } catch (Exception ignore) {}
+    if (alarmSub != null)
+    {
+      try { alarmSub.unsubscribeAll(); } catch (Exception ignore) {}
+      alarmSub = null;
+    }
     lastSentByPoint.clear();
   }
 
@@ -92,10 +107,10 @@ final class RideAlongSubscriber
     BComponent root = (BComponent)o;
 
     // Walk the driver subtree. For each control point:
-    Set<Handle> present = new HashSet<>();
+    Set<Object> present = new HashSet<>();
     for (BControlPoint pt : findPoints(root))
     {
-      Handle h = pt.getHandle();
+      Object h = pt.getHandle();
       if (h == null) continue;                  // not mounted; nothing to ride
       present.add(h);
 
@@ -149,18 +164,21 @@ final class RideAlongSubscriber
       BComponent c = e.getSourceComponent();
       if (!(c instanceof BControlPoint)) return;
       BControlPoint pt = (BControlPoint)c;
-      Handle h = pt.getHandle();
+      Object h = pt.getHandle();
       if (h == null) return;
 
       // Per-point min-interval deadband: protect the queue from a chattering
       // point on a fast trunk. Enforced here, at the source, before enqueue.
-      // Deadband arithmetic uses the monotonic tick clock; the event itself is
-      // stamped with wall-clock time (the SIEM needs real timestamps).
-      long nowTicks = Clock.ticks();
+      // Deadband arithmetic uses System.nanoTime() (unambiguously nanoseconds
+      // and monotonic); the event itself is stamped with wall-clock time (the
+      // SIEM needs real timestamps). We avoid Clock.ticks() here: its unit is
+      // not documented (a sibling Clock.nanoTicks() exists), so mixing it with
+      // the millisecond minInterval risked an ~1e6 error.
+      long nowNs = System.nanoTime();
       Long last = lastSentByPoint.get(h);
-      long minGap = svc.getMinIntervalMs();
-      if (last != null && last != 0L && (nowTicks - last) < minGap) return;
-      lastSentByPoint.put(h, nowTicks);
+      long minGapNs = svc.getMinIntervalMs() * 1_000_000L;
+      if (last != null && last != 0L && (nowNs - last) < minGapNs) return;
+      lastSentByPoint.put(h, nowNs);
 
       BStatusValue out = pt.getOutStatusValue();
       String src = pt.getSlotPath().toString();
@@ -184,17 +202,79 @@ final class RideAlongSubscriber
   {
     if (alarmAuditHooked) return;
     alarmAuditHooked = true;
-    // Attach listeners to AlarmService and AuditHistoryService here. These are
-    // station-internal and never generate RS-485 traffic, so no ride-along gate
-    // is needed — forward everything (subject to the same bounded queue).
-    //
-    //   BAlarmService alarms = (BAlarmService)Sys.getService(BAlarmService.TYPE);
-    //   alarms.getAlarmClass(...).addAlarmRecipient(new BSiemAlarmRecipient(svc));
-    //
-    //   BAuditHistoryService audit = ...
-    //   audit.subscribe(auditListener -> svc.offer(SiemEvent.audit(...)));
-    //
-    // Left as wiring points so the skeleton stays framework-version-agnostic.
+    // Alarm classes and the audit history are station-internal and never
+    // generate RS-485 traffic, so no ride-along gate is needed — forward
+    // everything (subject to the same bounded queue and self-throttle).
+    if (svc.getForwardAlarms()) subscribeAlarms();
+
+    // AUDIT is deliberately NOT forwarded by this module. A transient seam does
+    // exist (watch the `lastRecord` Property on BAuditHistoryService and its
+    // SecurityAuditHistorySource child), but reading the record's fields
+    // requires the com.tridium.history.audit.* implementation classes — internal
+    // API, not the stable javax.baja contract, and unwanted coupling inside the
+    // accreditation boundary. Niagara's built-in remote syslog (4.10+) already
+    // exports audit/platform logs cleanly over RFC 5424, so audit is left to it
+    // — keeping this module's custom-code surface to points + alarms only. The
+    // `forwardAudit` config slot stays for operators who wire an external audit
+    // path, but this module does not act on it.
+  }
+
+  /**
+   * Transiently listen for alarms. We attach `alarmSub` to every alarm class and
+   * catch its public `alarm` Topic firing. This writes NOTHING to the config DB
+   * (unlike parenting a BAlarmRecipient under each class), which keeps the
+   * module's non-interference / CM footprint minimal. Verified against the 4.10
+   * and 4.15 API: BAlarmService.getAlarmClasses() -> BAlarmClass[], BAlarmClass
+   * has a public `alarm` Topic, and a TOPIC_FIRED BComponentEvent carries the
+   * BAlarmRecord via getValue().
+   */
+  private void subscribeAlarms()
+  {
+    BAlarmService as = (BAlarmService)Sys.getService(BAlarmService.TYPE);
+    if (as == null) { log.trace("no AlarmService; alarm forwarding disabled"); return; }
+
+    alarmSub = new Subscriber()
+    {
+      @Override public void event(BComponentEvent e) { onAlarm(e); }
+    };
+    for (BAlarmClass ac : as.getAlarmClasses())
+    {
+      if (ac != null) alarmSub.subscribe(ac);
+    }
+  }
+
+  /** Alarm-class topic callback -> SiemEvent (no I/O, just enqueue). */
+  private void onAlarm(BComponentEvent e)
+  {
+    try
+    {
+      // Only the primary `alarm` topic. Skip escalatedAlarm1/2/3 (duplicates of
+      // the same record) and any non-topic event on the class.
+      if (e.getId() != BComponentEvent.TOPIC_FIRED) return;
+      if (!"alarm".equals(e.getSlotName())) return;
+
+      BValue v = e.getValue();
+      if (!(v instanceof BAlarmRecord)) return;
+      BAlarmRecord r = (BAlarmRecord)v;
+
+      String src = r.getSource() != null ? r.getSource().toString() : "-";
+      // Niagara alarm priority is 1 (highest) .. 255 (lowest); map the urgent
+      // half to syslog error, the rest to warning.
+      int sev = r.getPriority() <= 127 ? 3 /*error*/ : 4 /*warning*/;
+      String msg = "alarm class=" + r.getAlarmClass()
+                 + " transition=" + r.getSourceState()
+                 + " priority=" + r.getPriority()
+                 + " ack=" + r.getAckState()
+                 + " uuid=" + r.getUuid();
+      long ts = r.getTimestamp() != null ? r.getTimestamp().getMillis()
+                                         : System.currentTimeMillis();
+
+      svc.offer(SiemEvent.alarm(src, msg, sev, ts));
+    }
+    catch (Exception ex)
+    {
+      log.trace("alarm handling error: " + ex);
+    }
   }
 
   // ==========================================================================

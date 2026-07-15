@@ -1,9 +1,10 @@
 # siemForwarder — non-interfering SIEM event forwarder for JACE / Niagara 4
 
 A Niagara station service that forwards security-relevant events (point
-value/status changes, alarms, audit records) from a JACE to a SIEM over
-syslog/TLS — **without adding any load to the RS-485 field bus or the control
-engine.**
+value/status changes and alarms) from a JACE to a SIEM over syslog/TLS —
+**without adding any load to the RS-485 field bus or the control engine.**
+Audit/platform logs are deliberately left to Niagara's native remote syslog
+(see the audit bind-point note below), keeping the custom-code surface minimal.
 
 This is a **skeleton**: the structure, threading model, and the three safety
 patterns are complete and correct, and the framework call sites have been
@@ -25,8 +26,8 @@ subscribed by someone else** (graphics, histories, control logic). Niagara
 ref-counts subscriptions, so joining an existing one adds **zero** polls. A
 cheap in-memory rescan (every 10s, no wire traffic) picks up newly-active points
 and releases ones that went idle — we never keep a point polled on our own
-account. Alarms and audit records bypass this gate entirely because they're
-station-internal and never touch the field bus.
+account. Alarms bypass this gate entirely because they're station-internal and
+never touch the field bus (audit is handled by native remote syslog, not here).
 
 ### 2. Bounded queue (`BoundedEventQueue` + `ForwardWorker`)
 - Event handlers do nothing but `offer()` and return — microseconds, no I/O.
@@ -120,19 +121,54 @@ Coverage (SDD §test-plan T1/T2 plus contract checks):
    SIEM collector.
 
 ## Before you build — framework-version bind points
+These were resolved against the indexed Niagara **4.10 and 4.15** API surface,
+and every symbol the module uses has an **identical descriptor on both** (the
+module targets "4.10+"; the used API surface is stable across that range). Items
+marked ✅ are confirmed present with the signatures the code uses; items marked
+⚠️ still need a build-specific decision or seam.
+
+- ✅ **Core ride-along API confirmed on 4.15.** `BComponent.getSubscribers()`
+  returns `Subscriber[]`, `Subscriber.event(BComponentEvent)`,
+  `BComponentEvent.getSourceComponent()` returns `BComponent`,
+  `BControlPoint.getOutStatusValue()` returns `BStatusValue`, and
+  `Clock.schedulePeriodically(BComponent, BRelTime, Action, BValue)` all match.
+- ✅ **Handle type fixed.** There is no `javax.baja.sys.Handle`;
+  `BComponent.getHandle()` returns `java.lang.Object`. The attach map is now
+  keyed by `Object`. (Was a hard compile error.)
+- ✅ **Deadband unit fixed.** `Clock.ticks()` has an undocumented unit (a sibling
+  `Clock.nanoTicks()` exists), so the per-point deadband now uses
+  `System.nanoTime()` vs `minIntervalMs * 1_000_000L` instead of comparing
+  ticks against milliseconds.
 - Run the **slot-o-matic** to regenerate the auto-generated block in
   `BSiemForwarderService` (the hand-written version — including the
   `rideAlongRescan` / `throttleTick` action slots the clock tickets dispatch
   through — is there so the skeleton reads cleanly).
-- Replace the engine-hog approximation with the authoritative reading from your
-  build's `EngineWatchdogService`/`SysManager`.
-- Wire the alarm and audit listeners in `hookAlarmAndAudit()` to the concrete
-  `BAlarmService` / `BAuditHistoryService` types on your target.
-- TLS trust is currently anchored in the **JVM-default** trust store
-  (`SSLSocketFactory.getDefault()`, with hostname verification enabled). To
-  anchor it in the **Niagara platform certificate store** instead, build the
-  `SSLSocketFactory` from the platform certificate-manager API on your target
-  build (marked `BIND POINT:` in `ForwardWorker.connect()`).
+- ⚠️ **Engine-hog reading.** There is **no** public
+  `BEngineWatchdogService.getEngineHog()` in 4.15 (the earlier note was wrong).
+  The clock-jitter proxy in `SelfThrottleMonitor` may be the best signal
+  available; if you need an authoritative value, source it from the engine
+  manager diagnostics and confirm the type on your build first.
+- ✅ **Alarm wiring implemented (transient subscriber).**
+  `RideAlongSubscriber.subscribeAlarms()` attaches a `Subscriber` to every class
+  from `BAlarmService.getAlarmClasses()` and catches each class's public `alarm`
+  Topic; the `TOPIC_FIRED` event carries the `BAlarmRecord` via `getValue()`.
+  This writes **nothing** to the config DB — chosen over parenting a persistent
+  `BAlarmRecipient` component (which would be a CM/SA-controlled change) to keep
+  the non-interference footprint minimal. All symbols verified on 4.10 and 4.15.
+- ✅ **Audit — intentionally left to native remote syslog.** A transient seam
+  exists (watch the `lastRecord` Property on `BAuditHistoryService` + its
+  `SecurityAuditHistorySource` child; fields verified stable 4.10↔4.15), but
+  reading the record requires the `com.tridium.history.audit.*` **internal**
+  classes — API-unstable coupling inside the accreditation boundary. Niagara's
+  built-in remote syslog (4.10+) already exports audit/platform logs over RFC
+  5424, so this module forwards **points + alarms only** and defers audit to the
+  native path. `forwardAudit` remains as a config slot but is not acted on.
+- ⚠️ **TLS trust anchor.** Currently the **JVM-default** trust store
+  (`SSLSocketFactory.getDefault()`, hostname verification enabled). To anchor in
+  the **Niagara platform certificate store**, build the factory from the
+  platform crypto API — candidate anchor `javax.baja.security.crypto.se.BajaSSLSocketFactory`
+  (verify its construction/SSLContext seam), marked `BIND POINT:` in
+  `ForwardWorker.connect()`.
 - Update the `SocketPermission` in `module-permissions.xml` to match your
   configured `siemHost`/`siemPort` (the shipped grant is the default host).
 
@@ -144,7 +180,8 @@ point with no external interest is never forwarded — by design, because
 subscribing it ourselves would add RS-485 traffic. If a point must be
 guaranteed in the SIEM feed, give it a history extension (or other standing
 subscriber); that also makes coverage deterministic for accreditation
-evidence. Alarms and audit records are unaffected (forwarded unconditionally).
+evidence. Alarms are unaffected (forwarded unconditionally); audit is covered by
+native remote syslog rather than this module.
 
 ## RMF / accreditation notes
 Custom code on the JACE enters your accreditation boundary and will be scrutinized

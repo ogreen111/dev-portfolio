@@ -185,9 +185,10 @@ final class ForwardWorker implements Runnable
       ssl.setSSLParameters(params);
       // BIND POINT: SSLSocketFactory.getDefault() trusts the JVM-default
       // (javax.net.ssl) store. To anchor trust in the Niagara platform
-      // certificate store instead, obtain the SSLContext from the platform's
-      // certificate manager API on the target build and create the factory
-      // from it.
+      // certificate store instead, build the factory from the platform crypto
+      // API. Candidate anchor found in 4.15:
+      // javax.baja.security.crypto.se.BajaSSLSocketFactory — confirm its
+      // construction/SSLContext seam on your target build before wiring it in.
     }
     s.connect(new InetSocketAddress(svc.getSiemHost(), svc.getSiemPort()), 5000);
     s.setSoTimeout(0);

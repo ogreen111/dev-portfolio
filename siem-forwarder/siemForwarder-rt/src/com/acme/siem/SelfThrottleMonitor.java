@@ -142,8 +142,12 @@ final class SelfThrottleMonitor
     long expected = 2000;
     double jitter = Math.max(0, elapsed - expected);
     return Math.min(100.0, (jitter / expected) * 100.0);
-    // Replace with: ((BEngineWatchdogService)Sys.getService(...)).getEngineHog()
-    // for an authoritative reading on your target build.
+    // NOTE: there is no public BEngineWatchdogService.getEngineHog() in the
+    // 4.15 API (verified against the corpus). Clock-jitter is a legitimate,
+    // dependency-free proxy for engine load and may be the best signal actually
+    // available. If you need an authoritative reading, source it from the engine
+    // manager diagnostics (spy: /spy sys managers) on your target build and
+    // confirm the type before wiring it in — do not assume the name above.
   }
 
   private double sampleFreeHeapPct()
