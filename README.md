@@ -2,7 +2,7 @@
 
 Personal development workspace for tools and systems built around DoD/MILCON cybersecurity proposals, BAS/OT network engineering, and internal SSi productivity automation.
 
-**32 projects** · Last updated 2026-07-04
+**33 projects** · Last updated 2026-07-18
 
 ---
 
@@ -31,6 +31,7 @@ Personal development workspace for tools and systems built around DoD/MILCON cyb
 | [kml](#kml) | Network / OT Tools | JS, Python | Utility |
 | [cert-manager](#cert-manager) | Platform / Shared | FastAPI, React, SQLite | v0 |
 | [account-store](#account-store) | Platform / Shared | Python | Library |
+| [niagara-config](#niagara-config) | Platform / Shared | Python, pydantic | Library |
 | [ssi-design-system](#ssi-design-system) | Platform / Shared | JSON, CSS, Python | v0.1 |
 | [claude-sync](#claude-sync) | Platform / Shared | Python, launchd | v1 |
 | [claude-memory-compiler](#claude-memory-compiler) | Platform / Shared | Python, Claude Agent SDK | v0 |
@@ -100,10 +101,10 @@ Passive Ethernet discovery for enterprise/government/OT networks. Identifies ups
 Fleet of BACnet/IP virtual buildings that share a network with a real JACE 9000. 76 total devices (53 BACnet-bearing) across 5 archetypes (office/barracks/hangar/clinic/warehouse). Linux-only (macvlan). Used for network-scanner integration testing. **Stack:** Python (bacpypes3, docker-compose), macvlan networking.
 
 #### digital-twin
-FRCS digital twin of a small commercial HVAC plant (17,500 ft², 50-ton CW plant). Synthetic physics + BACnet/IP emulation with Flask/HTMX HMI for operator training and fault injection. Expanded substantially in 2026: campus multi-RTU mode (10 barracks + central energy plant), full electrical distribution model with breaker trip logic and per-equipment sub-metering, PI/PID supervisory control (CHWS reset, economizer, lead/lag), an FDD engine with ~50 detectors plus probabilistic diagnoser, Modbus/TCP server, Niagara oBIX/REST-BQL emulation layer, 3D plant graphics, and a Niagara N4 Px generator. **Stack:** Python (BAC0, Flask, Click), BACnet/IP, Modbus/TCP, HTMX + Three.js. 480+ tests. Ports 8080 (HMI), 8081/8082 (Niagara emulator).
+FRCS digital twin of a small commercial HVAC plant (17,500 ft², 50-ton CW plant). Synthetic physics + BACnet/IP emulation with Flask/HTMX HMI for operator training and fault injection. Expanded substantially in 2026: campus multi-RTU mode (10 barracks + central energy plant), full electrical distribution model with breaker trip logic and per-equipment sub-metering, PI/PID supervisory control (CHWS reset, economizer, lead/lag), an FDD engine with ~50 detectors plus probabilistic diagnoser, Modbus/TCP server, Niagara oBIX/REST-BQL emulation layer, 3D plant graphics, and a Niagara N4 Px generator. A 2026-07 addition is **config-driven mode**: driven by a real Niagara Supervisor backup (`config.bog`) via the shared `niagara-config` library, the twin emulates a specific real site — publishing that site's real point names/topology over the Niagara surfaces, with the physics engine driving the points it can model and a coverage dial for the rest (opt-in via `TWIN_FROM_BACKUP` + `TWIN_ENABLE_NIAGARA`; default behavior unchanged). **Stack:** Python (BAC0, Flask, Click), BACnet/IP, Modbus/TCP, HTMX + Three.js. 880+ tests. Ports 8080 (HMI), 8081/8082 (Niagara emulator).
 
 #### niagara-llm
-CASCADE — external analysis brain that monitors Niagara BAS stations (real-time point values + historical trends) via Niagara-faithful interfaces (oBIX, REST/BQL, SQL history export) behind a single `StationDataSource` abstraction, so it ports to a real JACE/Supervisor by config change. v2 runs fully air-gapped with a local LLM (Ollama), adaptive baselines, and RAG-grounded diagnosis; current work is closed-loop write-back, multi-station/fleet monitoring, and the operator dashboard. Also includes a Supervisor audit CLI (federation/architecture/security/platform-health analyzers) and a backup-assessment tool that replays a Supervisor backup's history through the detectors to produce a branded ROI/instrumentation-gap report. Developed against the digital-twin's Niagara emulation layer (the twin's FaultEngine is the test oracle). **Stack:** Python (FastAPI, httpx, Ollama, Claude API), SQLite, Docker appliance bundle. Port 8770. 47 test files.
+CASCADE — external analysis brain that monitors Niagara BAS stations (real-time point values + historical trends) via Niagara-faithful interfaces (oBIX, REST/BQL, SQL history export) behind a single `StationDataSource` abstraction, so it ports to a real JACE/Supervisor by config change. v2 runs fully air-gapped with a local LLM (Ollama), adaptive baselines, and RAG-grounded diagnosis; current work is closed-loop write-back, multi-station/fleet monitoring, and the operator dashboard. Also includes a Supervisor audit CLI (federation/architecture/security/platform-health analyzers) and a backup-assessment tool that replays a Supervisor backup's history through the detectors to produce a branded ROI/instrumentation-gap report. Its Supervisor-backup parser + semantic classifier were extracted (2026-07) into the shared `niagara-config` library, which niagara-llm now consumes via re-export shims. Developed against the digital-twin's Niagara emulation layer (the twin's FaultEngine is the test oracle). **Stack:** Python (FastAPI, httpx, Ollama, Claude API), SQLite, Docker appliance bundle. Port 8770. 47 test files.
 
 #### siem-forwarder
 Niagara 4 JACE module that forwards security-relevant station events (point value/status changes, alarms, audit records) to a SIEM over RFC 5424 syslog/TLS, built around a non-interference design: ride-along subscriptions only (never adds polls to the RS-485 field bus), bounded drop-oldest queue drained by a below-normal-priority worker thread, and self-throttling with explicit gap events. Skeleton — structure, threading model, and safety patterns complete; bind points marked for the target Niagara build. **Stack:** Java (Niagara 4 module API, Gradle). Design doc: `siem-forwarder/siemForwarder-SDD.docx`.
@@ -128,6 +129,9 @@ Web app to manage employee training certificates. Parses certs (filename + PDF +
 
 #### account-store
 Shared pip-installable Python library for local user account management (pbkdf2_sha256). Role-based access (admin/reviewer/viewer), JSON-backed storage, legacy migration. Consumed by rfp-automation, project-tracking, email-processor, project-monitor.
+
+#### niagara-config
+Shared Python library for parsing Niagara Supervisor backups (`config.bog`) and classifying station points into an equipment/role semantic model. Extracted from niagara-llm (the `backup`/`semantic`/`model`/`topology`/`catalog`/`sources.base` cluster) to be a single source of truth consumed by both **niagara-llm** (via re-export shims, so its existing imports are unchanged) and the **digital-twin** (whose config-driven mode emulates a real site from a backup). **Stack:** Python (pydantic only), hatchling. Status: Library.
 
 #### ssi-design-system
 Single source of truth for SSi brand tokens (colors, typography, spacing, radii, shadows). CSS custom properties, Python brand.py, build + sync scripts. Now also home to the Niagara 4 engineering standard: point naming contract, point dictionary (xlsx), data-driven plant graphics rendered to PNG/Px/SVG, 10 standard Px view templates, kitPx artwork catalog, and a Px authoring guide. **v0.1.0**, Phases 1–3 complete; project-tracking is the v0 pilot.
@@ -176,6 +180,9 @@ ssi-design-system ←─── project-tracking
 
 virtual-devices ←─── network-scanner (integration tests)
 digital-twin    ←─── niagara-llm (dev target: Niagara emulation layer + fault oracle)
+
+niagara-config  ←─── niagara-llm (backup parser + semantic classifier; via re-export shims)
+                ←─── digital-twin (config-driven mode: emulate a real site from a backup)
 ```
 
 **Archived 2026-07-14:** cyber-proposals (removed), cyber-eac-tool (`_archive/cyber-eac-tool-20260711.tar.gz`), cyber-estimates (`_archive/cyber-estimates-20260714.tar.gz`). The NAVFAC/USACE cyber proposal and pricing logic is now packaged as the `navfac-cyber-proposal` Claude skill.

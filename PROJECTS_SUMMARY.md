@@ -52,7 +52,7 @@ A summary of all projects under `/Users/ogreen/Documents/dev/`, generated 2026-0
 ## digital-twin
 **Purpose:** FRCS digital twin of a small commercial HVAC plant (17,500 ft², 50-ton CW plant). Synthetic physics + BACnet/IP emulation with Flask/HTMX HMI for operator training and fault-injection scenarios.
 **Stack:** Python (BAC0, Flask, Click), BACnet/IP, Modbus/TCP, HTMX + Three.js 3D graphics.
-**Notes:** v1.10 with major 2026 expansion: campus multi-RTU mode (10 barracks + central energy plant), full electrical distribution model (breaker trip logic, sub-metering), PI/PID supervisory control, ~50-detector FDD engine + probabilistic diagnoser, Niagara oBIX/REST-BQL emulation layer, N4 Px generator. 480+ tests. Ports 8080/8081/8082.
+**Notes:** v1.10 with major 2026 expansion: campus multi-RTU mode (10 barracks + central energy plant), full electrical distribution model (breaker trip logic, sub-metering), PI/PID supervisory control, ~50-detector FDD engine + probabilistic diagnoser, Niagara oBIX/REST-BQL emulation layer, N4 Px generator. 2026-07: config-driven mode (via `niagara-config`) emulates a specific real site from a Niagara Supervisor backup — publishing real point names/topology, physics where modeled + a coverage dial elsewhere (opt-in via `TWIN_FROM_BACKUP` + `TWIN_ENABLE_NIAGARA`). 880+ tests. Ports 8080/8081/8082.
 
 ## email-processor
 **Purpose:** Automated triage for inbound RFI/RFQ/RFP emails for SSi. Parses mail, fetches gated PWS/questions from GSA MRAS/SAM/eBuy/PIEE, summarizes via Claude, outputs to Obsidian vault + docx + webserver dashboard.
@@ -84,6 +84,11 @@ A summary of all projects under `/Users/ogreen/Documents/dev/`, generated 2026-0
 **Stack:** Python (nmap, netmiko, bacpypes3, FastAPI), SQLite, HTMX + Jinja templates.
 **Notes:** v1 with site-based scans + profiles; BACnet Who-Is + ReadProperty enumeration; field simulation and scan-run control added 2026; 60+ tests; includes WPAFB BAS network simulator (76 devices). Port 8000.
 
+## niagara-config
+**Purpose:** Shared Python library that parses Niagara Supervisor backups (`config.bog`) and classifies station points into an equipment/role semantic model. Extracted from niagara-llm to be a single source of truth for Niagara-backup handling.
+**Stack:** Python (pydantic only), hatchling.
+**Notes:** Library. Public API across `backup`/`semantic`/`model`/`topology`/`catalog`/`sources.base`. Consumed by niagara-llm (via re-export shims, so its existing imports are unchanged) and by digital-twin's config-driven mode. Created 2026-07.
+
 ## niagara-docs
 **Purpose:** Local reference cache of Niagara 4.10/4.15 runtime binaries (bin/lib/modules) plus a Supervisor backup, used for developing the Niagara-facing projects.
 **Stack:** — (binary cache, not a codebase).
@@ -92,7 +97,7 @@ A summary of all projects under `/Users/ogreen/Documents/dev/`, generated 2026-0
 ## niagara-llm
 **Purpose:** CASCADE — external analysis brain that monitors Niagara BAS stations (real-time point values + historical trends) for issues via Niagara-faithful interfaces (oBIX, REST/BQL, SQL history export) behind a single `StationDataSource` abstraction; ports to a real JACE/Supervisor by config change.
 **Stack:** Python (FastAPI, httpx, Ollama local LLM, Claude API), SQLite, Docker appliance bundle.
-**Notes:** v2 — fully air-gapped local-LLM operation, adaptive baselines, RAG-grounded diagnosis; current phase is closed-loop write-back + fleet monitoring + operator dashboard. Includes Supervisor audit CLI (federation/architecture/security analyzers) and backup-assessment ROI reporting. Developed against digital-twin's Niagara emulation (FaultEngine as test oracle). 47 test files. Port 8770.
+**Notes:** v2 — fully air-gapped local-LLM operation, adaptive baselines, RAG-grounded diagnosis; current phase is closed-loop write-back + fleet monitoring + operator dashboard. Includes Supervisor audit CLI (federation/architecture/security analyzers) and backup-assessment ROI reporting. The Supervisor-backup parser + semantic classifier were extracted (2026-07) into the shared `niagara-config` library, now consumed via re-export shims. Developed against digital-twin's Niagara emulation (FaultEngine as test oracle). 47 test files. Port 8770.
 
 ## outlook-followup
 **Purpose:** Outlook email follow-up automation or task tracking (purpose inferred).
