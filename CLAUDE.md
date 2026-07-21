@@ -25,7 +25,7 @@ This directory (`~/Documents/dev/`) is the root of a personal development worksp
 | network-scanner | Active network discovery + BACnet enumeration | v1 |
 | ethernet-link-analyzer | Passive LLDP/CDP Ethernet discovery; Pi field appliance w/ touch UI, battery, gated active tests | Phase 4 |
 | virtual-devices | BACnet/IP virtual building fleet (76 devices) | v1 |
-| digital-twin | FRCS HVAC plant digital twin + fault injection; campus multi-RTU mode, electrical model, ~50-detector FDD; config-driven mode emulates a real site from a Niagara Supervisor backup (via niagara-config) | v1.10 |
+| digital-twin | FRCS HVAC plant digital twin + fault injection; selectable twin models (office-building / barracks-cep campus, mutually exclusive, live-switchable from the HMI), electrical model, ~50-detector FDD (office-building; barracks-cep coverage partial); config-driven mode emulates a real site from a Niagara Supervisor backup (via niagara-config, designed-for future third model) — incl. per-detector role catalog + `config coverage` report, fault injection addressed by real equipment id, findings in real config names, and `config export-fixtures` labeled diagnosis fixtures | v1.12 |
 | Pocket Probe | STM32 LLDP/CDP keychain device | Prototype |
 | PRTG Import | Bulk PRTG device import from CSV | Production |
 | kml | KML/topology generation utilities (JBLM) | Utility |
@@ -36,7 +36,7 @@ This directory (`~/Documents/dev/`) is the root of a personal development worksp
 | claude-memory-compiler | Hook-captured Claude conversations → compiled knowledge articles | v0 |
 | floor-plan-editor | 2D/3D floor plan editor → HA card export | Active |
 | niagara-docs | Niagara 4.10/4.15 runtime binary cache + Supervisor backup (dev reference, not a project) | Stub |
-| niagara-llm | CASCADE — external LLM analysis brain for Niagara BAS (oBIX/REST-BQL/SQL); FDD + LLM diagnosis, air-gapped local LLM (Ollama), Supervisor audit CLI, backup assessment; backup parser/classifier extracted to niagara-config (consumed via shims) | v2 |
+| niagara-llm | CASCADE — external LLM analysis brain for Niagara BAS (oBIX/REST-BQL/SQL); FDD + LLM diagnosis, air-gapped local LLM (Ollama), Supervisor audit CLI, backup assessment; backup parser/classifier extracted to niagara-config (consumed via shims); offline diagnosis scorer (`diag-score` + `FixtureSource`) grades detection against digital-twin's labeled fixtures | v2 |
 | niagara-config | Shared library: Niagara Supervisor backup (`config.bog`) parser + point→equipment/role semantic classifier; extracted from niagara-llm, consumed by niagara-llm (shims) and digital-twin | Library |
 | sanguine | Internal Levels.com-style blood-lab results viewer (PDF/CSV + Apple Health import, optimal vs standard ranges, trends, biomarker detail pages, PhenoAge biological age, vitals, Claude-generated cached explanations) | v1 |
 | siem-forwarder | Niagara 4 JACE module forwarding point/alarm/audit events to a SIEM over RFC 5424 syslog/TLS, non-interference design | Skeleton/design-complete |
@@ -51,6 +51,7 @@ This directory (`~/Documents/dev/`) is the root of a personal development worksp
 - **ssi-design-system** → consumed by: project-tracking, (planned for all SSi web apps)
 - **virtual-devices** → used by: network-scanner for integration testing
 - **niagara-config** → consumed by: niagara-llm (via re-export shims), digital-twin (config-driven mode)
+- **digital-twin labeled fixtures** (`config export-fixtures`) → consumed by: niagara-llm (`diag-score` offline diagnosis scoring). JSON files are the decoupling contract — no live server, no runtime dependency between the repos.
 
 _Archived 2026-07-14: **cyber-proposals** (removed), **cyber-eac-tool** (`_archive/cyber-eac-tool-20260711.tar.gz`), **cyber-estimates** (`_archive/cyber-estimates-20260714.tar.gz`). The navfac cyber proposal/pricing logic now lives in the `navfac-cyber-proposal` Claude skill._
 
