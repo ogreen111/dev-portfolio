@@ -1,7 +1,7 @@
 # Post-Award Cyber Project Provisioning Design
 
 **Date:** 2026-07-29
-**Status:** Approved design; awaiting written-spec review
+**Status:** Approved after written-spec review and Planner tenant spike
 **Application:** `project-creation`
 **Owner for initially provisioned Microsoft 365 Groups:** `ogreen@spectrumsi.com`
 
@@ -45,6 +45,9 @@ personnel assignments, submittal submission, or government-approval workflow.
 - Use the exact confirmed project name for both the Microsoft 365 Group and
   Planner plan. Do not add a prefix or suffix.
 - For the initial release, use `ogreen@spectrumsi.com` as the Group owner.
+- For the initial release, add only that owner as a Group member. Adding other
+  project stakeholders is a manual post-provisioning action, not card
+  assignment and not part of this automation.
 - Recreate the bucket structure from the Planner template plan:
 
   `AHEqL4KIXU2P3AMIiuF3X4IAELH7` (`Cyber Template`)
@@ -118,6 +121,12 @@ mount.
 2. The start screen offers:
    - paste a SharePoint site URL; or
    - select a recently created accessible SharePoint site.
+   Graph-powered recent-site discovery requires tenant-wide read permission
+   such as `Sites.Read.All`; `Sites.Selected` alone does not support site
+   search. A deployment using only `Sites.Selected` disables Graph discovery
+   and offers pasted URL plus an optional IT-maintained known-site registry.
+   In either deployment, IT must grant `Sites.Selected` write access to the
+   chosen project site before it can be provisioned.
 3. The application resolves the SharePoint site and document drive through
    Graph.
 4. It validates that the Cyber Specs path exists and contains supported files.
@@ -138,6 +147,8 @@ mount.
     - Planner plan link;
     - counts of systems, submittal folders, template files, and cards;
     - warnings or skipped items; and
+    - a reminder that additional Planner users must be added to the private
+      Microsoft 365 Group manually; and
     - audit/run identifier.
 
 ## 5. Preview Contract
@@ -277,6 +288,10 @@ The model does not receive the complete specification for this task.
 - Default non-CUI provider: OpenAI.
 - Optional configured non-CUI providers: Anthropic or local Ollama.
 - CUI-marked source: local Ollama only.
+- CUI classification is evaluated at the source-file and extracted-record
+  levels. Every submittal record inherits the most restrictive classification
+  of its source file and cited source section. A record derived from any
+  CUI-marked source is CUI even when the extracted name itself is unmarked.
 - If the local model is unavailable for a CUI run, the workflow pauses for
   manual resolution.
 - CUI content is never sent to OpenAI or Anthropic.
@@ -306,6 +321,7 @@ aliases automatically.
 - Display name: exact confirmed project name.
 - Mail nickname: deterministic sanitized form of the confirmed name, with a
   collision check before writes.
+- Both display-name and mail-nickname conflicts pause the run before writes.
 - Type: Microsoft 365 unified group.
 - Visibility: configured deployment default; initial recommendation is
   `Private`.
@@ -322,6 +338,12 @@ PROJECT_CREATION_DEFAULT_OWNER_ID=<Entra object ID, optional>
 
 If the object ID is configured, the application does not need to resolve the
 owner by email on every run.
+
+Microsoft 365 Group creation is eventually consistent. After Graph returns
+`201`, the orchestrator uses bounded condition polling to verify that the Group,
+owner, and member bindings are readable before it creates the Planner plan.
+Transient `404` responses during this readiness window are retried; exhaustion
+becomes a resumable partial failure.
 
 Creating the Microsoft 365 Group also creates a group-connected SharePoint site.
 That site is not the document destination. The IT-created project SharePoint
@@ -363,6 +385,24 @@ The application also creates a generated `Folders` card in `Resources` with a
 link to the authoritative SharePoint Cyber folder. This card is generated from
 the new project's data; it is not copied from the template plan.
 
+### Provisioning order
+
+The orchestrator executes the approved manifest in this dependency order:
+
+1. create and populate the SharePoint folders;
+2. create the Microsoft 365 Group and bind its owner/member;
+3. create the Planner plan in that Group;
+4. recreate the buckets in template order;
+5. configure the plan category descriptions;
+6. create the unassigned submittal cards;
+7. update task details and references; and
+8. create the `Folders` resource card after its authoritative SharePoint link
+   is known.
+
+Each successful step persists its Graph resource IDs and ETags before the next
+step begins. Resume starts at the first incomplete step after reconciling all
+previously persisted resources.
+
 ## 10. Authentication and Authorization
 
 ### Initial application authentication
@@ -396,14 +436,28 @@ The application performs a read-only permission preflight before enabling
 - `Tasks.ReadWrite.All`;
 - Group creation/write permissions appropriate to the tenant;
 - `User.Read.All` if resolving `ogreen@spectrumsi.com` dynamically;
+- `Sites.Read.All` if Graph-powered recent-site discovery is enabled;
 - read access to the SSI Fileshare template site;
 - read access to the selected project site; and
-- write access to the selected project site.
+- IT/operator attestation that the selected project's `Sites.Selected` grant
+  includes `write`.
 
 If `Sites.Selected` is used for least privilege, IT must grant the application
-write access to each newly created project site before provisioning. Merely
-creating the site does not grant the application write access. The app surfaces
-this as a preflight failure rather than starting a partial run.
+write access to each newly created project site as part of the site-creation
+handoff and before the user starts project provisioning. Merely creating the
+site does not grant the application read or write access, and a
+`Sites.Selected` grant does not make the site searchable through Graph. The app
+surfaces a completely missing site grant as a pasted-site/known-site preflight
+failure.
+
+The read-only preflight cannot distinguish a site-specific `read` grant from a
+site-specific `write` grant without broader permission to enumerate site
+permissions. The application does not request `Sites.FullControl.All` for this
+check. Instead, the approval records the IT/operator attestation, and the first
+audited SharePoint folder creation after approval verifies actual write
+capability. A `403` stops the run before any Group or Planner resource is
+created, records a permission failure, and offers resume after IT corrects the
+grant.
 
 ## 11. Provisioning State and Idempotency
 
@@ -450,13 +504,18 @@ Idempotency rules:
 - Graph IDs are persisted immediately after successful creation.
 - Resume reconciles persisted IDs with live Graph state before issuing writes.
 - Existing matching folders and files are reused.
-- Existing same-name files with different content cause a review pause.
+- Existing same-name files are compared with SHA-256 content hashes. A matching
+  hash reuses the file; a different hash causes a review pause. Modified dates
+  and file sizes are not sufficient identity checks.
 - Cards are reconciled using the run's stable manifest item IDs and persisted
   task IDs, not title alone.
 - The application never auto-deletes a partially created Microsoft 365 Group,
   plan, folder, or file.
 - Re-running analysis after the source-spec fingerprint changes creates a new
-  manifest revision and requires approval again.
+  manifest revision within the same immutable provisioning run ID and requires
+  approval again. All revisions share the run's persisted Graph resource IDs,
+  so reconciliation spans revisions and cannot recreate an already-provisioned
+  folder, Group, plan, bucket, or task.
 
 ## 12. Failure and Conflict Handling
 
@@ -482,6 +541,12 @@ For a mid-provisioning failure:
 - reconcile before retrying.
 
 Automatic destructive rollback is out of scope.
+
+Planner updates and deletes that require optimistic concurrency use the current
+resource `@odata.etag` in `If-Match`. This applies to plan-details,
+task-details, task updates, and bucket updates/deletes—not resource-creation
+POSTs, which have no existing ETag. The client treats `409` or `412` as a
+reconciliation pause rather than blindly retrying with stale state.
 
 ## 13. Audit and Sensitive-Data Handling
 
@@ -595,8 +660,67 @@ Record sanitized Graph response shapes for:
 - task creation; and
 - task-details reference update.
 
+The Planner contract suite covers application-only access and required
+optimistic-concurrency behavior, including `If-Match`, ETag refresh, and
+controlled handling of `409`/`412` responses.
+
 Live smoke tests must use a dedicated sandbox site and sandbox Group/plan, run
 only through an explicit operator command, and default to dry-run.
+
+Before implementation begins, a one-time live tenant spike must prove that the
+existing certificate-based service principal can perform this complete Planner
+round trip:
+
+1. create a private temporary Microsoft 365 Group;
+2. add `ogreen@spectrumsi.com` as owner and member;
+3. create a plan in that Group;
+4. create a bucket;
+5. update plan category descriptions with `If-Match`;
+6. create an unassigned task with an applied category;
+7. update task details with `If-Match`; and
+8. read back and verify the created resources.
+
+The spike records status codes and resource IDs without tokens or response
+content. After Group creation, a `finally` cleanup path attempts to soft-delete
+the temporary Group on both success and failure; Microsoft 365 soft deletion
+keeps the Group recoverable during the tenant retention window. Cleanup failure
+is reported with the temporary Group ID and requires manual deletion before a
+retry. Any failed capability operation blocks implementation until the
+permission or API contract is corrected and the spike passes.
+
+### Tenant-spike evidence
+
+The prerequisite spike passed on 2026-07-29 using the existing
+`SSI-RFP-Automation` certificate-based service principal:
+
+| Operation | Result |
+|---|---:|
+| Resolve `ogreen@spectrumsi.com` | `200` |
+| Create temporary private Microsoft 365 Group | `201` |
+| Read back owner/member bindings | eventual `200`; both verified |
+| Create Planner plan | `201` |
+| Create `Planning/Backlog` bucket | `201` |
+| Read plan details and ETag | `200` |
+| Update plan category descriptions with `If-Match` | `204` |
+| Create unassigned categorized task | `201` |
+| Read task details and ETag | `200` |
+| Update task details with `If-Match` | `204` |
+| Read back plan, buckets, tasks, categories, and task details | all `200` |
+| Soft-delete temporary Group and contained test resources | `204` |
+
+Read-back verification confirmed the exact plan title, bucket ID, task ID,
+category description, task-details update, and empty assignments. The temporary
+resources were:
+
+- Group: `009d4e5b-a486-406a-bb33-6dc84d6916e7`;
+- Plan: `YyRswa_RIE62Rym4SaK7CIIAF5dt`;
+- Bucket: `s5DjP1rPO0-y5unNmykooYIADcG2`; and
+- Task: `yTRmG0lRQEWTd1PGbrWm6oIAGIfL`.
+
+This result resolves the written-spec review concern about application-only
+Planner writes for the initial tenant and credential configuration. Contract
+tests and the explicit live sandbox smoke command remain required so future
+permission or Graph behavior changes fail closed.
 
 ## 16. Configuration
 
