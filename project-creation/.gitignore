@@ -1,0 +1,9 @@
+.plans/
+.venv*
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.py[cod]
+*.egg-info/
+project-creation.db*
+.env
