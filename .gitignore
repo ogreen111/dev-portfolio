@@ -24,6 +24,19 @@ scripts/
 ssi-design-system/
 virtual-devices/
 daily-summary/
+claude-memory-compiler/
+cyber-brain/
+fulcrum-replacement/
+niagara-config/
+niagara-llm/
+niagara-mcp-integration/
+project-monitor/
+sanguine/
+scribe/
+sops/
+stream-deck/
+trim-backup/
+.plans/
 
 # macOS
 .DS_Store
