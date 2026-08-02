@@ -30,7 +30,7 @@ Reserved ports for the dev portfolio. Each app binds its assigned port on startu
 - **Avoid port 8766** — silently reserved at the OS level on this machine (visible via `netstat` as LISTEN on `127.0.0.1:8766` but with no `lsof`-visible owner).
 - The `claude-sync` daemon binds `127.0.0.1:8866` (not a portfolio app server, but reserves the port).
 - **Port 8010 (cyber-eac-tool) is intentionally absent**, not an oversight: cyber-eac-tool was archived 2026-07-14 (see `CLAUDE.md`'s Shared Dependencies note) and nothing live binds 8010 today. Its LaunchAgent (`com.ssi.cyber-eac-tool`) is still registered, though, and crash-loops every 30s because its working directory no longer exists — `launchctl bootout gui/$(id -u)/com.ssi.cyber-eac-tool` before reusing this port. `AGENTS.md`'s port table still lists it as if it were live and needs the same update.
-- **The tracked `deploy/com.ssi.portfolio.plist` is stale** — it still describes the pre-2026-07-05→retirement Traefik-fronted setup (loopback `18737`, no SSL vars) and was never updated when the installed copy in `~/Library/LaunchAgents` moved to the direct `0.0.0.0:8737` bind documented above. A clean checkout following that tracked file's own install instructions would reproduce the old topology, not what's actually running. Needs a follow-up commit to sync it, or an explicit decision that the loopback+Traefik topology is what a fresh install should use instead.
+- **`deploy/com.ssi.portfolio.plist` now matches the installed copy** — synced 2026-08-02 to the direct `0.0.0.0:8737` bind, the `~/dev/portfolio_server.py` script path, and the (currently inert) `PORTFOLIO_SSL_CERTFILE`/`KEYFILE` vars, replacing the stale pre-2026-07-05 Traefik-fronted description.
 
 ## Verification
 

@@ -1,8 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
-  Dev-portfolio index server (portfolio_server.py) — loopback only; Traefik
-  terminates TLS on :8737 in front (see scribe/deploy/traefik/).
+  Dev-portfolio index server (portfolio_server.py) — binds 0.0.0.0:8737
+  directly over plain HTTP; Traefik was retired and no reverse proxy sits
+  in front. PORTFOLIO_SSL_CERTFILE/KEYFILE below are set (sharing Scribe's
+  mkcert cert) but portfolio_server.py does not read them yet, so they are
+  currently inert — see PORTS.md for the full history/caveats.
+
+  Runs from ~/dev/portfolio_server.py, a separate Syncthing-managed mirror
+  of this repo's tracked files — not ~/Documents/dev, to avoid the TCC
+  grant/EPERM issues launchd hits under the iCloud-synced ~/Documents tree
+  (see CLAUDE.md's iCloud workaround section).
 
   Install (COPY, do not symlink — launchd skips symlinked plists at login):
     cp deploy/com.ssi.portfolio.plist ~/Library/LaunchAgents/
@@ -20,15 +28,21 @@
     <!-- Homebrew python: it holds the TCC Documents-folder grant on this box;
          the CommandLineTools /usr/bin/python3 gets EPERM under launchd. -->
     <string>/opt/homebrew/bin/python3</string>
-    <string>/Users/ogreen/Documents/dev/portfolio_server.py</string>
+    <string>/Users/ogreen/dev/portfolio_server.py</string>
   </array>
   <key>EnvironmentVariables</key>
   <dict>
+    <!-- Bind all interfaces on the well-known port. -->
     <key>PORTFOLIO_HOST</key>
-    <string>127.0.0.1</string>
-    <!-- Internal loopback port; Traefik serves the public https://:8737. -->
+    <string>0.0.0.0</string>
     <key>PORTFOLIO_PORT</key>
-    <string>18737</string>
+    <string>8737</string>
+    <!-- Shared mkcert cert (same one Scribe uses). Currently unread by
+         portfolio_server.py — see the header comment above. -->
+    <key>PORTFOLIO_SSL_CERTFILE</key>
+    <string>/Users/ogreen/Library/SSIScribe/tls/scribe.pem</string>
+    <key>PORTFOLIO_SSL_KEYFILE</key>
+    <string>/Users/ogreen/Library/SSIScribe/tls/scribe-key.pem</string>
   </dict>
   <key>RunAtLoad</key>
   <true/>
