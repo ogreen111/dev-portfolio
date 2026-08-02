@@ -72,7 +72,7 @@ A summary of all projects under `/Users/ogreen/Documents/dev/`, generated 2026-0
 ## fulcrum-replacement
 **Purpose:** In-house offline-first mobile field data collection platform (iOS/Android) to replace the ~$40k/yr Fulcrum subscription. Covers BAS asset surveys, JACE commissioning checklists, and QC inspections.
 **Stack (proposed):** Capacitor (React/Vite mobile wrapper), FastAPI + PostGIS backend, durable offline SQLite.
-**Notes:** Design stage only — design doc rev 4 (2026-07-02) with requirements, ROI analysis (~14–15 month payoff), and offline-durability risk spike. Proposed port 8773.
+**Notes:** Design stage only — design doc rev 4 (2026-07-02) with requirements, ROI analysis (~14–15 month payoff), and offline-durability risk spike. Proposed port 8774.
 
 ## kml
 **Purpose:** Utilities for parsing and generating KML files, Niagara network topology, and building centroids from JBLM (Joint Base Lewis-McChord) commissioning data.

@@ -83,7 +83,7 @@ Knowledge management system for the SSi cyber & integration group. Ingests Micro
 Power Automate solution for an automated daily email digest, packaged as a Microsoft solution zip. **Stack:** Power Automate. Status: v0.
 
 #### fulcrum-replacement
-Design for an in-house, offline-first mobile field data collection platform (iOS/Android) to replace the ~$40k/yr Fulcrum subscription. Covers BAS asset surveys, JACE commissioning checklists, and QC inspections. **Stack (proposed):** Capacitor (React/Vite), FastAPI + PostGIS backend, durable offline SQLite. Design doc rev 4 (2026-07-02); no code yet. Proposed port 8773.
+Design for an in-house, offline-first mobile field data collection platform (iOS/Android) to replace the ~$40k/yr Fulcrum subscription. Covers BAS asset surveys, JACE commissioning checklists, and QC inspections. **Stack (proposed):** Capacitor (React/Vite), FastAPI + PostGIS backend, durable offline SQLite. Design doc rev 4 (2026-07-02); no code yet. Proposed port 8774.
 
 ---
 

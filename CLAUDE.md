@@ -10,9 +10,39 @@ This directory (`~/Documents/dev/`) is the root of a personal development worksp
 
 ## Project Registry
 
-Full per-project index: [README.md](README.md). Compact auto-generated
-summary: [PROJECTS_SUMMARY.md](PROJECTS_SUMMARY.md). Read one of those for
-project descriptions/status rather than duplicating them here.
+| Project | Purpose | Status |
+|---|---|---|
+| rfp-automation | DoD RFP intake, scope extraction, proposal drafting | Production |
+| cyber-artifact-gen | BAS→diagram/schematic conversion for proposals | Utility |
+| email-processor | Inbound RFI/RFQ/RFP email triage and summarization | Production |
+| outlook-followup | Outlook follow-up automation | Stub |
+| past-performance | SSi past-performance doc search + extraction | v1 |
+| project-tracking | Job budget/cost/labor/submittal dashboard; React v2 UI primary, Planner/SharePoint Graph sync | v1 |
+| project-monitor | Project folder + Outlook email → PM status via entity registers (contracts, mods, POs, invoices, pay apps) | v2 |
+| cyber-brain | SSi cyber group knowledge system: Graph ingestion (SharePoint/Planner/Teams/email) → per-project event stream, briefs, cited Q&A | v0.1 |
+| daily-summary | Power Automate daily email digest solution | v0 |
+| fulcrum-replacement | Offline-first mobile field data collection platform (Fulcrum SaaS replacement) | Design only |
+| network-scanner | Active network discovery + BACnet enumeration | v1 |
+| ethernet-link-analyzer | Passive LLDP/CDP Ethernet discovery; Pi field appliance w/ touch UI, battery, gated active tests | Phase 4 |
+| virtual-devices | BACnet/IP virtual building fleet (76 devices) | v1 |
+| digital-twin | FRCS HVAC plant digital twin + fault injection; selectable twin models (office-building / barracks-cep campus, mutually exclusive, live-switchable from the HMI), electrical model, ~50-detector FDD (office-building; barracks-cep coverage partial); config-driven mode emulates a real site from a Niagara Supervisor backup (via niagara-config, designed-for future third model) — incl. per-detector role catalog + `config coverage` report, fault injection addressed by real equipment id, findings in real config names, and `config export-fixtures` labeled diagnosis fixtures | v1.12 |
+| Pocket Probe | STM32 LLDP/CDP keychain device | Prototype |
+| PRTG Import | Bulk PRTG device import from CSV | Production |
+| kml | KML/topology generation utilities (JBLM) | Utility |
+| cert-manager | Employee training cert tracker | v0 |
+| project-creation | Post-award Cyber SharePoint and Planner provisioning (Graph app-only auth, SharePoint resolver) | Scaffolding — no CLI run command yet |
+| account-store | Shared user account management library | Library |
+| ssi-design-system | SSi brand tokens + CSS + doc generation | v0.1 |
+| claude-sync | Syncthing conflict resolver for ~/.claude | v1 |
+| claude-memory-compiler | Hook-captured Claude conversations → compiled knowledge articles | v0 |
+| floor-plan-editor | 2D/3D floor plan editor → HA card export | Active |
+| niagara-docs | Niagara 4.10/4.15 runtime binary cache + Supervisor backup (dev reference, not a project) | Stub |
+| niagara-llm | CASCADE — external LLM analysis brain for Niagara BAS (oBIX/REST-BQL/SQL); FDD + LLM diagnosis, air-gapped local LLM (Ollama), Supervisor audit CLI, backup assessment; backup parser/classifier extracted to niagara-config (consumed via shims); offline diagnosis scorer (`diag-score` + `FixtureSource`) grades detection against digital-twin's labeled fixtures; dashboard API sends portfolio-baseline security headers (CSP/X-Frame-Options/etc. via `api/security_headers.py`, mirroring project-tracking; HSTS opt-in behind `SECURE_HSTS`) | v2 |
+| niagara-config | Shared library: Niagara Supervisor backup (`config.bog`) parser + point→equipment/role semantic classifier; extracted from niagara-llm, consumed by niagara-llm (shims) and digital-twin | Library |
+| sanguine | Internal Levels.com-style blood-lab results viewer (PDF/CSV + Apple Health import, optimal vs standard ranges, trends, biomarker detail pages, PhenoAge biological age, vitals, Claude-generated cached explanations) | v1 |
+| siem-forwarder | Niagara 4 JACE module forwarding point/alarm/audit events to a SIEM over RFC 5424 syslog/TLS, non-interference design | Skeleton/design-complete |
+| scribe | SSI Scribe — self-hosted AI meeting note taker: Whisper/MLX ASR, pyannote diarization, Ollama gpt-oss:120b summaries (own repo: github.com/ogreen111/scribe) | v0.1 |
+| scripts | Mount automation + Bash utilities | Active |
 
 ---
 
@@ -20,7 +50,7 @@ project descriptions/status rather than duplicating them here.
 
 - **account-store** → consumed by: rfp-automation, project-tracking, email-processor, project-monitor, cert-manager, project-creation
 - **ssi-design-system** → consumed by: project-tracking, (planned for all SSi web apps)
-- **virtual-devices** → used by: network-scanner for integration testing
+- **virtual-devices** → pairs with: digital-twin (frcs-digital-twin) for integration testing (see `virtual-devices/INTEGRATION.md`)
 - **niagara-config** → consumed by: niagara-llm (via re-export shims), digital-twin (config-driven mode)
 - **digital-twin labeled fixtures** (`config export-fixtures`) → consumed by: niagara-llm (`diag-score` offline diagnosis scoring). JSON files are the decoupling contract — no live server, no runtime dependency between the repos.
 
@@ -54,13 +84,15 @@ entirely and never get flagged.
   path → resolved per-project), so `uv sync`/`uv run` create venvs at
   `<project>/.venv.nosync`.
 - Each migrated project keeps a `.venv → .venv.nosync` symlink so existing
-  `.venv/bin/...` commands (e.g. the start commands in [PORTS.md](PORTS.md)) keep working.
+  `.venv/bin/...` commands (e.g. the Port Map below) keep working.
 - Migrating an existing project: `rm -rf .venv && uv sync && ln -s .venv.nosync .venv`
   (only when nothing is running from the venv). Ensure `.gitignore` uses
   `.venv*`, not `.venv/` (a symlink isn't matched by the trailing-slash form).
-- Migrated so far: project-monitor, ssi-design-system. Others still have plain
-  `.venv` dirs with flagged `.pth` files — migrate on next touch
-  (email-processor was skipped because its server was running from `.venv`).
+- Migrated so far: project-monitor, ssi-design-system, niagara-llm, sanguine,
+  digital-twin/frcs-digital-twin (`.venv` is a symlink to `.venv.nosync`).
+  Partially migrated (`.venv.nosync` exists alongside a plain, un-symlinked
+  `.venv`) — migrate on next touch: email-processor (skipped because its
+  server was running from `.venv`), rfp-automation, project-tracking.
 - Don't write per-file workarounds (runtime import shims, chflags hooks) —
   they lose the race or rot.
 
@@ -68,11 +100,35 @@ entirely and never get flagged.
 
 ## Port Map
 
-Full reserved-port table + start commands: [PORTS.md](PORTS.md) (each app
-binds its assigned port on startup; do not double-book). Two gotchas worth
-keeping in mind without opening that file: **avoid port 8766** (silently
-reserved at the OS level on this machine, no `lsof`-visible owner), and the
-`claude-sync` daemon binds `127.0.0.1:8866`.
+Reserved ports for the dev portfolio. Each app binds its assigned port on startup; do not double-book.
+
+| Port | Project | Service | Start command |
+|---|---|---|---|
+| 8000 | network-scanner | FastAPI backend | `cd network-scanner && .venv/bin/uvicorn scanner.app:app --host 0.0.0.0 --port 8000` |
+| 8002 | cert-manager | FastAPI backend | `cd cert-manager/backend && .venv/bin/uvicorn app.main:app --port 8002` |
+| 8008 | rfp-automation | dashboard (stdlib HTTP) | `cd rfp-automation && .venv/bin/rfp-auto dashboard` (reads `RFP_DASHBOARD_PORT` from `.env`) |
+| 8080 | digital-twin | Flask HMI | `cd digital-twin/frcs-digital-twin && WEB_HMI_PORT=8080 .venv/bin/python -m twin.cli run` |
+| 8081 | digital-twin | Niagara oBIX server (emulator) | `cd digital-twin/frcs-digital-twin && TWIN_ENABLE_NIAGARA=1 .venv/bin/python -m twin.cli run` (gated by `TWIN_ENABLE_NIAGARA=1`) |
+| 8082 | digital-twin | Niagara REST/BQL endpoint (emulator) | same process as oBIX above (`NIAGARA_BQL_PORT`) |
+| 8736 | scribe | uvicorn terminates TLS directly (mkcert cert), no reverse proxy | LaunchAgent `com.ssi.scribe` (https://host:8736) |
+| 8737 | dev-portfolio | Plain HTTP (`ThreadingHTTPServer`), no TLS — `PORTFOLIO_SSL_CERTFILE`/`KEYFILE` are set but `portfolio_server.py` never reads them (details/caveats: [PORTS.md](PORTS.md)) | `launchctl kickstart -k gui/$(id -u)/com.ssi.portfolio` (binds 0.0.0.0:8737) |
+| 8765 | email-processor | FastAPI + uvicorn | `cd email-processor && uv run email-intake serve` |
+| 8767 | past-performance | FastAPI + uvicorn | `cd past-performance && .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8767` |
+| 8768 | project-tracking | FastAPI + uvicorn | `cd project-tracking && PT_PORT=8768 .venv/bin/python -m webapp` |
+| 8769 | project-monitor | FastAPI + uvicorn | `cd project-monitor && PM_PORT=8769 .venv/bin/project-monitor run` |
+| 8770 | niagara-llm | FastAPI + dashboard | `cd niagara-llm && uv run niagara-llm run` |
+| 8771 | sanguine | FastAPI + dashboard | `cd sanguine && uv run sanguine run` (reads `SANGUINE_PORT`) |
+| 8772 | cyber-brain | FastAPI + dashboard | `cd cyber-brain && uv run cyber-brain run` (reads `CB_HOST`/`CB_PORT`; binds 127.0.0.1 by default) |
+| 8773 | project-creation | FastAPI (default `PROJECT_CREATION_PORT`) | reserved — `project_creation.app:create_app()` exists but the CLI (`project-creation`) is still a stub with no `run`/uvicorn wiring yet |
+| 8774 | fulcrum-replacement | FastAPI + offline-first mobile app (planned) | reserved only — `fulcrum-replacement/` has no `pyproject.toml` or app code yet, just `DESIGN.md`/`DESIGN.docx`; no start command exists until it's built |
+| 5173 | cert-manager | Vite frontend (proxies `/api` → 8002) | `cd cert-manager/frontend && npm run dev` |
+
+**Notes:**
+
+- past-performance, project-tracking, and email-processor all default to 8765 in their own READMEs; the portfolio-wide assignment moves them apart so they can run simultaneously.
+- cert-manager's Vite proxy target in `frontend/vite.config.ts` must match the backend port (currently `8002`).
+- **Avoid port 8766** — silently reserved at the OS level on this machine (visible via `netstat` as LISTEN on `127.0.0.1:8766` but with no `lsof`-visible owner).
+- The `claude-sync` daemon binds `127.0.0.1:8866` (not a portfolio app server, but reserves the port).
 
 ---
 

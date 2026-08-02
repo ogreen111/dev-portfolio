@@ -19,7 +19,8 @@ Reserved ports for the dev portfolio. Each app binds its assigned port on startu
 | 8770 | niagara-llm | FastAPI + dashboard | `cd niagara-llm && uv run niagara-llm run` |
 | 8771 | sanguine | FastAPI + dashboard | `cd sanguine && uv run sanguine run` (reads `SANGUINE_PORT`) |
 | 8772 | cyber-brain | FastAPI + dashboard | `cd cyber-brain && uv run cyber-brain run` (reads `CB_HOST`/`CB_PORT`; binds 127.0.0.1 by default) |
-| 8773 | fulcrum-replacement | FastAPI + offline-first mobile app (planned) | reserved only — `fulcrum-replacement/` has no `pyproject.toml` or app code yet, just `DESIGN.md`/`DESIGN.docx`; no start command exists until it's built |
+| 8773 | project-creation | FastAPI (default `PROJECT_CREATION_PORT`) | reserved — `project_creation.app:create_app()` exists but the CLI (`project-creation`) is still a stub with no `run`/uvicorn wiring yet |
+| 8774 | fulcrum-replacement | FastAPI + offline-first mobile app (planned) | reserved only — `fulcrum-replacement/` has no `pyproject.toml` or app code yet, just `DESIGN.md`/`DESIGN.docx`; no start command exists until it's built |
 | 5173 | cert-manager | Vite frontend (proxies `/api` → 8002) | `cd cert-manager/frontend && npm run dev` |
 
 ## Notes
@@ -35,8 +36,9 @@ Reserved ports for the dev portfolio. Each app binds its assigned port on startu
 
 Both commands below cover only ports that are up by default. Excluded:
 8081/8082 (digital-twin's Niagara emulator, off unless `TWIN_ENABLE_NIAGARA=1`
-— add them back when testing with that flag set) and 8773 (fulcrum-replacement,
-nothing to bind yet).
+— add them back when testing with that flag set), 8773 (project-creation,
+CLI has no run/uvicorn wiring yet), and 8774 (fulcrum-replacement, nothing
+to bind yet).
 
 Roll-call command to confirm everything is bound:
 
