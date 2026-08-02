@@ -18,7 +18,7 @@ project descriptions/status rather than duplicating them here.
 
 ## Shared Dependencies
 
-- **account-store** → consumed by: rfp-automation, project-tracking, email-processor, project-monitor
+- **account-store** → consumed by: rfp-automation, project-tracking, email-processor, project-monitor, cert-manager, project-creation
 - **ssi-design-system** → consumed by: project-tracking, (planned for all SSi web apps)
 - **virtual-devices** → used by: network-scanner for integration testing
 - **niagara-config** → consumed by: niagara-llm (via re-export shims), digital-twin (config-driven mode)
