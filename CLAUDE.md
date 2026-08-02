@@ -1,6 +1,6 @@
 # Dev Portfolio — Claude Context
 
-This directory (`~/Documents/dev/`) is the root of a personal development workspace containing 30 projects built around three core domains:
+This directory (`~/Documents/dev/`) is the root of a personal development workspace containing 31 projects built around three core domains:
 
 1. **DoD/MILCON cybersecurity proposal automation** — RFP intake → pricing → tech proposal → EAC tracking
 2. **BAS/OT network engineering** — passive discovery, BACnet simulation, site scanning, hardware prototypes
