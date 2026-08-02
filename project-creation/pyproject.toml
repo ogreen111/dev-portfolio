@@ -13,6 +13,7 @@ dependencies = [
     "httpx>=0.28,<1",
     "jinja2>=3.1,<4",
     "pydantic>=2.12,<3",
+    "python-dotenv>=1.2.2",
     "python-multipart>=0.0.20,<1",
     "rfp-automation",
     "uvicorn>=0.34,<1",
