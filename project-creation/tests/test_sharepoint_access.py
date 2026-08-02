@@ -93,6 +93,60 @@ def test_resolve_site_selects_library_named_in_deep_url() -> None:
     assert site.drive_id == "cyber"
 
 
+def test_resolve_site_with_no_library_in_url_uses_sites_default_drive() -> None:
+    graph = StubGraph()
+    graph.responses = [
+        graph_response(
+            {
+                "id": "site-id",
+                "webUrl": "https://tenant.sharepoint.com/sites/Alpha",
+                "displayName": "Alpha",
+            }
+        ),
+        graph_response(
+            {
+                "id": "default-drive",
+                "name": "Dokumente",
+                "driveType": "documentLibrary",
+                "webUrl": "https://tenant.sharepoint.com/sites/Alpha/Dokumente",
+            }
+        ),
+    ]
+
+    site = SharePointClient(
+        graph, allowed_hosts={"tenant.sharepoint.com"}
+    ).resolve_site("https://tenant.sharepoint.com/sites/Alpha")
+
+    assert site.drive_id == "default-drive"
+    assert graph.requests[-1][:2] == ("GET", "/sites/site-id/drive")
+
+
+def test_resolve_site_raises_when_requested_library_is_not_found() -> None:
+    graph = StubGraph()
+    graph.responses = [
+        graph_response(
+            {
+                "id": "site-id",
+                "webUrl": "https://tenant.sharepoint.com/sites/Alpha",
+                "displayName": "Alpha",
+            }
+        )
+    ]
+    graph.collections["/sites/site-id/drives"] = [
+        {
+            "id": "default",
+            "name": "Documents",
+            "driveType": "documentLibrary",
+            "webUrl": "https://tenant.sharepoint.com/sites/Alpha/Shared Documents",
+        }
+    ]
+
+    with pytest.raises(FileNotFoundError):
+        SharePointClient(
+            graph, allowed_hosts={"tenant.sharepoint.com"}
+        ).resolve_site("https://tenant.sharepoint.com/sites/Alpha/Nonexistent/Specs")
+
+
 @pytest.mark.parametrize(
     "url",
     [

@@ -78,6 +78,31 @@ class SharePointClient:
         if not isinstance(record, dict):
             raise ValueError("Graph returned an invalid site record")
         site_id = str(record["id"])
+        requested_library = segments[2].casefold() if len(segments) > 2 else None
+        drive = self._resolve_drive(site_id, requested_library)
+        return SiteTarget(
+            site_id=site_id,
+            drive_id=str(drive["id"]),
+            web_url=str(record["webUrl"]),
+            display_name=str(record.get("displayName") or segments[1]),
+        )
+
+    def _resolve_drive(
+        self, site_id: str, requested_library: str | None
+    ) -> dict[str, Any]:
+        if requested_library is None:
+            # The site's actual default library, not a name/order guess:
+            # the default library's *name* varies by tenant locale (e.g.
+            # "Documents" vs "Dokumente"), and Graph does not guarantee
+            # /drives list order, so neither is a reliable stand-in.
+            drive = self._graph.request(
+                "GET",
+                f"/sites/{quote(site_id, safe=',')}/drive",
+                params={"$select": "id,name,driveType,webUrl"},
+            ).json()
+            if not isinstance(drive, dict):
+                raise ValueError("Graph returned an invalid default drive")
+            return drive
 
         drives = list(
             self._graph.iter_collection(
@@ -88,15 +113,11 @@ class SharePointClient:
         document_drives = [
             drive for drive in drives if drive.get("driveType") == "documentLibrary"
         ]
-        if not document_drives:
-            raise FileNotFoundError("site has no document library")
-        requested_library = segments[2].casefold() if len(segments) > 2 else None
-        url_selected = next(
+        match = next(
             (
                 candidate
                 for candidate in document_drives
-                if requested_library
-                and unquote(urlparse(str(candidate.get("webUrl", ""))).path)
+                if unquote(urlparse(str(candidate.get("webUrl", ""))).path)
                 .rstrip("/")
                 .rsplit("/", 1)[-1]
                 .casefold()
@@ -104,22 +125,11 @@ class SharePointClient:
             ),
             None,
         )
-        drive = next(
-            (
-                candidate
-                for candidate in document_drives
-                if str(candidate.get("name", "")).casefold() == "documents"
-            ),
-            document_drives[0],
-        )
-        if url_selected is not None:
-            drive = url_selected
-        return SiteTarget(
-            site_id=site_id,
-            drive_id=str(drive["id"]),
-            web_url=str(record["webUrl"]),
-            display_name=str(record.get("displayName") or segments[1]),
-        )
+        if match is None:
+            raise FileNotFoundError(
+                f"SharePoint library {requested_library!r} was not found"
+            )
+        return match
 
     def resolve_path(self, drive_id: str, relative_path: str) -> DriveItem:
         drive = quote(drive_id, safe="")

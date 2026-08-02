@@ -65,10 +65,15 @@ def require_application_roles(
         raise PermissionError(
             "missing Graph application roles: " + ", ".join(sorted(missing))
         )
+    # Sites.Selected only makes the app eligible for per-site write grants;
+    # it does not confer write access to any site by itself. Actual access
+    # is a separate, per-site admin grant invisible in this token, so this
+    # check cannot promise write access to a specific site — only that the
+    # app holds a permission type capable of it.
     site_write_roles = {"Sites.Selected", "Sites.ReadWrite.All", "Sites.FullControl.All"}
     if not (site_write_roles & roles):
         raise PermissionError(
-            "missing Graph site-write application role: Sites.Selected, "
+            "missing Graph site-write-capable application role: Sites.Selected, "
             "Sites.ReadWrite.All, or Sites.FullControl.All"
         )
     discovery_roles = {"Sites.Read.All", "Sites.ReadWrite.All", "Sites.FullControl.All"}
