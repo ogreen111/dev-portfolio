@@ -98,6 +98,32 @@ entirely and never get flagged.
 
 ---
 
+## `.git` lives in `.git.nosync` (same iCloud workaround)
+
+The repo's own `.git` directory hit the identical failure mode as venvs: iCloud
+duplicated files inside it (refs, `COMMIT_EDITMSG`, etc.) when it didn't like
+concurrent access, producing broken-named refs (`refs/heads/main 2`, `main 3`)
+and `git branch -a` warnings. Fixed 2026-08-03 the same way as venvs:
+
+- The real git directory was moved to `~/Documents/dev/.git.nosync`; `.git` at
+  the repo root is now a symlink to it (`.git -> .git.nosync`).
+- This is safe for the repo's many linked worktrees: each linked worktree's own
+  `.git` file hardcodes an absolute path like
+  `gitdir: /Users/ogreen/Documents/dev/.git/worktrees/<name>`, which still
+  resolves correctly through the `.git` symlink — no worktree files needed
+  updating.
+- `.gitignore` has a `.git.nosync` entry so the real directory doesn't show up
+  as a giant untracked folder in `git status` (git only auto-hides the literal
+  `.git` path, not a renamed one).
+- Verified fixed via the same test as venvs: `chflags nohidden` on a file
+  inside `.git.nosync` did not get reverted after a couple seconds (an
+  actively-synced item reverts within ~0.5s).
+- If this repo is ever re-cloned or a new worktree tooling flow bypasses the
+  symlink, redo the same move: `mv .git .git.nosync && ln -s .git.nosync .git`
+  (only when no git operation is in progress and no lockfiles exist).
+
+---
+
 ## Port Map
 
 Reserved ports for the dev portfolio. Each app binds its assigned port on startup; do not double-book.

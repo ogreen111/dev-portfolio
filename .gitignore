@@ -38,6 +38,9 @@ stream-deck/
 trim-backup/
 .plans/
 
+# git data directory, relocated off iCloud sync (.git is now a symlink to this)
+.git.nosync
+
 # macOS
 .DS_Store
 
