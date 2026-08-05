@@ -93,6 +93,44 @@ if [ -e "$GIT_DIR/.git" ]; then
     echo "FATAL: $PROJECT has uncommitted changes. Commit or stash first."
     exit 1
   fi
+  # Linked worktrees never got this same check - only the main worktree
+  # above did. A dirty linked worktree isn't a data-loss risk (ditto below
+  # copies the working tree byte for byte regardless of git status), but it
+  # breaks this script's own stated contract ("refuses to run if the repo
+  # isn't clean") for exactly the files it never looked at. Deliberately
+  # unconditional (not nested under the origin/FORCE_NO_REMOTE branching
+  # below) - cleanliness has nothing to do with whether a remote exists, so
+  # FORCE_NO_REMOTE=1 (which is about skipping *push* verification) must
+  # not also skip this. Uses git worktree list --porcelain + sed (not awk)
+  # for the same worktree-path-with-spaces reason as the repair verification
+  # further down ("Pocket Probe" is a real project name here) - captured
+  # once here and reused below for the unpushed-HEAD check.
+  worktree_list_output=$(git -C "$GIT_DIR" worktree list --porcelain) || {
+    echo "FATAL: 'git worktree list' failed in $GIT_DIR - cannot verify worktree state." >&2
+    exit 1
+  }
+  # An array, not a space-joined string split back apart with `tr ' ' '\n'`
+  # like the branch-name lists elsewhere in this script use - branch names
+  # can't contain spaces, but worktree paths are real filesystem paths and
+  # can ("Pocket Probe" is a real project name here), so splitting on space
+  # would garble a legitimate path into two bogus lines in the FATAL below.
+  dirty_worktrees=()
+  while IFS= read -r wt_path; do
+    [ -z "$wt_path" ] && continue
+    [ "$wt_path" = "$GIT_DIR" ] && continue
+    wt_status=$(git -C "$wt_path" status --short 2>&1) || {
+      echo "FATAL: 'git status' failed in linked worktree $wt_path:" >&2
+      echo "$wt_status" | sed 's/^/    /' >&2
+      exit 1
+    }
+    [ -n "$wt_status" ] && dirty_worktrees+=("$wt_path")
+  done < <(printf '%s\n' "$worktree_list_output" | sed -n 's/^worktree //p')
+  if [ "${#dirty_worktrees[@]}" -gt 0 ]; then
+    echo "FATAL: $PROJECT has linked worktrees with uncommitted changes:" >&2
+    printf '    %s\n' "${dirty_worktrees[@]}" >&2
+    echo "       Commit or stash first, same as for the main worktree above." >&2
+    exit 1
+  fi
   branch=$(git -C "$GIT_DIR" branch --show-current)
   if ! git -C "$GIT_DIR" remote get-url origin >/dev/null 2>&1; then
     echo "FATAL: $PROJECT has no 'origin' remote configured, so push status cannot be verified."
@@ -154,6 +192,39 @@ if [ -e "$GIT_DIR/.git" ]; then
         echo "FATAL: $PROJECT has local branches with commits absent from every origin ref:" >&2
         echo "$other_branches_unpushed" | tr ' ' '\n' | sed '/^$/d;s/^/    /' >&2
         echo "       Push these first, or switch to and push each before re-running." >&2
+        exit 1
+      fi
+      # A linked worktree checked out on a detached HEAD (routine for
+      # background-task worktrees, e.g. this portfolio's own
+      # .claude/worktrees/* - confirmed live on project-tracking's two)
+      # carries a commit that lives ONLY on that worktree's HEAD, not under
+      # any refs/heads entry, so the branch loop above can't see it. Check
+      # every linked worktree's HEAD directly against every origin/* ref,
+      # same test as above. Reuses worktree_list_output, captured
+      # unconditionally near the top of this script (see the comment
+      # there for why cleanliness and push-status are checked separately).
+      # An array, same space-in-path reason as dirty_worktrees above.
+      unpushed_worktrees=()
+      while IFS= read -r wt_path; do
+        [ -z "$wt_path" ] && continue
+        [ "$wt_path" = "$GIT_DIR" ] && continue
+        wt_head=$(git -C "$wt_path" rev-parse HEAD 2>&1) || {
+          echo "FATAL: could not read HEAD for linked worktree $wt_path:" >&2
+          echo "$wt_head" | sed 's/^/    /' >&2
+          exit 1
+        }
+        wt_unpushed=$(git -C "$GIT_DIR" rev-list "$wt_head" --not --remotes=origin 2>&1) || {
+          echo "FATAL: could not compute unpushed commits for linked worktree $wt_path (HEAD $wt_head):" >&2
+          echo "$wt_unpushed" | sed 's/^/    /' >&2
+          exit 1
+        }
+        [ -n "$wt_unpushed" ] && unpushed_worktrees+=("$wt_path")
+      done < <(printf '%s\n' "$worktree_list_output" | sed -n 's/^worktree //p')
+      if [ "${#unpushed_worktrees[@]}" -gt 0 ]; then
+        echo "FATAL: $PROJECT has linked worktrees with a HEAD commit absent from every origin ref:" >&2
+        printf '    %s\n' "${unpushed_worktrees[@]}" >&2
+        echo "       Typically a detached-HEAD background-task worktree. Push (or discard) it," >&2
+        echo "       or remove it with 'git worktree remove', before re-running." >&2
         exit 1
       fi
       # Local-only tags are just a warning, not a FATAL - unlike branches,
@@ -351,7 +422,7 @@ NEW_PATH_ESCAPED="$HOME/dev/$PROJECT_SED_ESCAPED"
 # charset" - that incorrectly treats a real filename character like '+' as
 # a delimiter and clobbers an unrelated path). Enumerates the separators
 # that can actually follow a path inside a plist's ProgramArguments/command
-# string: /, quote, <, >, whitespace, a shell delimiter (; & | )), or ':'
+# string: /, quote, <, >, whitespace, a shell delimiter (; & | )), ':'
 # (PATH-style EnvironmentVariables values like
 # "PYTHONPATH=/old/project:/other" are a real LaunchAgent pattern in this
 # portfolio), or end-of-line.
