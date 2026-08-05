@@ -229,6 +229,92 @@ line in the backend log is unrelated to this move — `CERT_ROOT` points into
 mounted/synced at the time. Start sessions for this project from
 `~/dev/cert-manager`, not here.
 
+## network-scanner lives outside this tree
+
+As of 2026-08-05, **network-scanner is no longer under `~/Documents/dev/`** —
+relocated in full to `~/dev/network-scanner` via `ditto` (9,988 entries,
+byte-identical, HEAD match). Was checked out on a feature branch
+(`inventory-baseline-and-scan-runs`), not `main`, at move time - clean and
+fully pushed there too. A pre-existing nested Claude Code worktree at
+`.claude/worktrees/hopeful-benz-342a84` (detached HEAD, no uncommitted
+changes, commit fully pushed) had to be removed with `git worktree remove`
+first - its presence trips `git worktree repair`'s side effect of mutating
+that worktree's own `.git` file mid-run, which then fails the script's final
+pre-deletion diff check (see the `migrate-project.sh` commit history for the
+general writeup). Also cleared 4 stale root-owned `__pycache__/*.pyc` files
+(gitignored, safe to delete, blocked `ditto` with "Permission denied") left
+over from some earlier process that ran with elevated privileges. The
+`com.ssi.network-scanner` LaunchAgent wasn't loaded before the move (reason
+unclear) - loaded manually afterward and confirmed serving (`GET /` → 200 on
+:8000, via the LaunchAgent's `.venv/bin/python -m uvicorn` invocation - it
+doesn't route through a console-script wrapper, so no venv rebuild was
+needed for it). `.venv/bin/python` itself is a relative symlink chain
+(`python -> python3.14 -> /opt/homebrew/...`), so that invocation form
+survived the move intact - but this venv's console-script wrappers
+(`.venv/bin/uvicorn`, `.venv/bin/pip`, etc.) still have the same stale
+absolute shebang as every other project's here, so don't invoke them
+directly; the Port Map's start command below uses the same `python -m`
+form as the LaunchAgent for exactly this reason. Start sessions for
+this project from `~/dev/network-scanner`, not here.
+
+## past-performance lives outside this tree
+
+As of 2026-08-05, **past-performance is no longer under `~/Documents/dev/`** —
+relocated in full to `~/dev/past-performance` via `ditto` (9,694 entries).
+Had substantial uncommitted work at move time (an in-progress session-auth
+feature - `app/auth.py`, `tests/test_auth.py`, etc., 11 modified + 4
+untracked files) plus a stray untracked `.pp_index.sqlite.corrupt-...` debug
+artifact - stashed (in two passes; a first `git stash -u` didn't pick up
+`.pp_auth/` and a `.bak-orphanfix-...` file for unclear reasons, needed an
+explicit pathspec on a second pass) and restored cleanly at the new
+location, working tree matching exactly. Same nested-worktree removal as
+network-scanner above (`.claude/worktrees/competent-wilson-86dd33`, same
+safe-to-remove profile: detached HEAD, clean, fully pushed). Same
+stale-shebang fallout as email-processor/cert-manager hit `.venv/bin/uvicorn`
+- fixed the same way as cert-manager (plain `python3 -m venv .venv`, no
+`uv`/`.venv.nosync` convention here), plus a manual `account_store` editable
+reinstall from its still-unmoved original location (also undocumented in
+this project's own setup docs, like email-processor). LaunchAgent confirmed
+live (`GET /` → 200 on :8767); its startup log's "removed: 29" is normal
+reconciliation against the live OneDrive PP folder, unrelated to the move.
+Start sessions for this project from `~/dev/past-performance`, not here.
+
+## claude-sync lives outside this tree
+
+As of 2026-08-05, **claude-sync is no longer under `~/Documents/dev/`** —
+relocated in full to `~/dev/claude-sync` via `ditto` (2,717 entries).
+Cleanest of this batch: clean tree modulo one uncommitted `CLAUDE.md` doc
+change (stashed/restored), no nested worktrees, all 3 LaunchAgents
+(`com.ogreen.claude-sync`, `.healthcheck`, `.menubar`) repointed and reloaded
+without incident. `.venv/bin/python3` is a relative symlink, same as
+network-scanner, so no shebang fallout. Confirmed live via its own startup
+log (watching `~/.claude/projects`, HTTP bound on :8866). Start sessions for
+this project from `~/dev/claude-sync`, not here.
+
+## scribe lives outside this tree
+
+As of 2026-08-05, **scribe is no longer under `~/Documents/dev/`** - its own
+separate repo (github.com/ogreen111/scribe), relocated in full to
+`~/dev/scribe` via `ditto` (44,333 entries). Already using both the
+`.git -> .git.nosync` and `.venv -> .venv.nosync` conventions before this
+move. A local branch `slice-08-observability` (one commit, never pushed) had
+to be pushed to origin first to satisfy the preflight check. Migrating an
+already-`.git.nosync`-converted repo surfaced two real `migrate-project.sh`
+bugs, fixed in that script's own commit: `git worktree list` resolves the
+main worktree's path through the `.git.nosync` symlink rather than reporting
+the repo root, and `diff -rq`'s directory-loop detection false-positives on
+any directory reachable two ways within the same parent - hit here on
+`.git.nosync`, `.venv.nosync`, and the Swift Package Manager
+`.build/debug -> arm64-.../debug` convenience symlinks. The venv was rebuilt
+with the project's real production extras (`pip install -e
+".[mlx,diarization,dev]"`, matching `deploy/install.sh`'s step 2, not the
+minimal dev recipe) - `ssi-scribe doctor` confirmed ffmpeg, MLX ASR,
+diarization, OCR, and the shared LLM all healthy afterward, with cached
+models (`~/.cache/huggingface`, unaffected by the move) reused without
+re-downloading. LaunchAgent confirmed live over HTTPS (`GET /` → 200 on
+:8736, real LAN client traffic visible in logs immediately). Start sessions
+for this project from `~/dev/scribe`, not here.
+
 ---
 
 ## Virtualenvs: keep them in `.venv.nosync` (iCloud workaround)
@@ -251,7 +337,7 @@ entirely and never get flagged.
   `.venv*`, not `.venv/` (a symlink isn't matched by the trailing-slash form).
 - Migrated so far: project-monitor, ssi-design-system, niagara-llm, sanguine,
   digital-twin/frcs-digital-twin, rfp-automation, project-tracking,
-  email-processor (`.venv` is a symlink to `.venv.nosync`).
+  email-processor, scribe (`.venv` is a symlink to `.venv.nosync`).
 - Don't write per-file workarounds (runtime import shims, chflags hooks) —
   they lose the race or rot.
 
@@ -289,7 +375,7 @@ Reserved ports for the dev portfolio. Each app binds its assigned port on startu
 
 | Port | Project | Service | Start command |
 |---|---|---|---|
-| 8000 | network-scanner | FastAPI backend | `cd network-scanner && .venv/bin/uvicorn scanner.app:app --host 0.0.0.0 --port 8000` |
+| 8000 | network-scanner | FastAPI backend | `cd ~/dev/network-scanner && .venv/bin/python -m uvicorn scanner.app:app --host 0.0.0.0 --port 8000` (not `.venv/bin/uvicorn` directly - that console script has a stale shebang) |
 | 8002 | cert-manager | FastAPI backend | `cd ~/dev/cert-manager/backend && .venv/bin/uvicorn app.main:app --port 8002` |
 | 8008 | rfp-automation | dashboard (stdlib HTTP) | `cd ~/dev/rfp-automation && .venv/bin/rfp-auto dashboard` (reads `RFP_DASHBOARD_PORT` from `.env`) |
 | 8080 | digital-twin | Flask HMI | `cd ~/dev/digital-twin/frcs-digital-twin && WEB_HMI_PORT=8080 .venv/bin/python -m twin.cli run` |
@@ -298,7 +384,7 @@ Reserved ports for the dev portfolio. Each app binds its assigned port on startu
 | 8736 | scribe | uvicorn terminates TLS directly (mkcert cert), no reverse proxy | LaunchAgent `com.ssi.scribe` (https://host:8736) |
 | 8737 | dev-portfolio | Plain HTTP (`ThreadingHTTPServer`), no TLS — `PORTFOLIO_SSL_CERTFILE`/`KEYFILE` are set but `portfolio_server.py` never reads them (details/caveats: [PORTS.md](PORTS.md)) | `launchctl kickstart -k gui/$(id -u)/com.ssi.portfolio` (binds 0.0.0.0:8737) |
 | 8765 | email-processor | FastAPI + uvicorn | `cd ~/dev/email-processor && make serve` (applies the `chflags nohidden` .pth workaround; a bare `uv run` re-hides the file on its next sync) |
-| 8767 | past-performance | FastAPI + uvicorn | `cd past-performance && .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8767` |
+| 8767 | past-performance | FastAPI + uvicorn | `cd ~/dev/past-performance && .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8767` |
 | 8768 | project-tracking | FastAPI + uvicorn | `cd ~/dev/project-tracking && PT_PORT=8768 .venv/bin/python -m webapp` |
 | 8769 | project-monitor | FastAPI + uvicorn | `cd project-monitor && PM_PORT=8769 .venv/bin/project-monitor run` |
 | 8770 | niagara-llm | FastAPI + dashboard | `cd ~/dev/niagara-llm && uv run niagara-llm run` |
