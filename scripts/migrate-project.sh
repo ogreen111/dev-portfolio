@@ -109,6 +109,17 @@ if [ -e "$GIT_DIR/.git" ]; then
     echo "FATAL: 'git worktree list' failed in $GIT_DIR - cannot verify worktree state." >&2
     exit 1
   }
+  # The main worktree isn't always listed as exactly $GIT_DIR: for a repo
+  # using the .git -> .git.nosync symlink convention (this portfolio's own
+  # repo, and at least one migrated project - confirmed live on scribe),
+  # 'git worktree list' resolves through the symlink and reports the main
+  # worktree's path as "$GIT_DIR/.git.nosync" instead. Comparing against
+  # that literal $GIT_DIR string then fails to recognize it as the main
+  # worktree, and the loop below tries to run 'git status' inside the bare
+  # git directory itself - which isn't a work tree and always fails there.
+  # Git guarantees the main worktree is always the first entry, so use that
+  # instead of assuming a literal path match.
+  main_worktree_path=$(sed -n '1s/^worktree //p' <<<"$worktree_list_output")
   # An array, not a space-joined string split back apart with `tr ' ' '\n'`
   # like the branch-name lists elsewhere in this script use - branch names
   # can't contain spaces, but worktree paths are real filesystem paths and
@@ -117,7 +128,7 @@ if [ -e "$GIT_DIR/.git" ]; then
   dirty_worktrees=()
   while IFS= read -r wt_path; do
     [ -z "$wt_path" ] && continue
-    [ "$wt_path" = "$GIT_DIR" ] && continue
+    [ "$wt_path" = "$main_worktree_path" ] && continue
     wt_status=$(git -C "$wt_path" status --short 2>&1) || {
       echo "FATAL: 'git status' failed in linked worktree $wt_path:" >&2
       echo "$wt_status" | sed 's/^/    /' >&2
@@ -207,7 +218,7 @@ if [ -e "$GIT_DIR/.git" ]; then
       unpushed_worktrees=()
       while IFS= read -r wt_path; do
         [ -z "$wt_path" ] && continue
-        [ "$wt_path" = "$GIT_DIR" ] && continue
+        [ "$wt_path" = "$main_worktree_path" ] && continue
         wt_head=$(git -C "$wt_path" rev-parse HEAD 2>&1) || {
           echo "FATAL: could not read HEAD for linked worktree $wt_path:" >&2
           echo "$wt_head" | sed 's/^/    /' >&2
@@ -267,17 +278,45 @@ fi
 # client:idle while a later call on the same host showed client:needs-sync
 # with unclean items under this very directory).
 non_idle=$(grep -v '^client:idle$' <<<"$icloud_states" || true)
-if [ -n "$non_idle" ]; then
-  echo "FATAL: iCloud is not idle ($(echo "$non_idle" | head -1)). Wait for it to settle before moving files."
-  exit 1
+
+# The global 'client:' summary and the "Client Truth Unclean Items" listing
+# both cover the WHOLE CloudDocs container, not just this project - confirmed
+# live on this machine: a large, permanently-busy unrelated tree elsewhere
+# (a legacy ~/Documents/RFPs repo with its raw, un-nosync'd .git/objects/
+# sitting directly under iCloud, sync-churning thousands of loose objects;
+# separately, claude-memory-compiler's own daily log being actively appended
+# to) kept the global state at client:needs-sync indefinitely even though
+# nothing under the project actually being moved was pending. So: don't block
+# on the global summary - parse the per-item listing (if any) and only FATAL
+# if an unclean item's path actually falls under this project.
+#
+# brctl reports item paths relative to the iCloud Drive root (no $HOME
+# prefix), e.g. "Under /Documents/dev/$PROJECT/...", so map $OLD into that
+# same form. project_escaped mirrors PROJECT_SED_ESCAPED below (defined later
+# in the script, after $OLD is deleted, so not reusable here) - PROJECT's
+# only allowed regex metacharacter is '.', which must be escaped for grep -E.
+project_escaped=$(printf '%s' "$PROJECT" | sed 's/\./\\./g')
+project_icloud_path="/Documents/dev/$project_escaped"
+
+if [ -n "$non_idle" ] || grep -q "Client Truth Unclean Items" <<<"$icloud_status"; then
+  unclean_items=$(grep -E "Under ${project_icloud_path}(\$|/)" <<<"$icloud_status" || true)
+  if [ -n "$unclean_items" ]; then
+    echo "FATAL: iCloud has unsynced items under $OLD itself:" >&2
+    echo "$unclean_items" | sed 's/^/    /' >&2
+    echo "       Wait for these specific items to sync before moving." >&2
+    exit 1
+  fi
+  if ! grep -q "Client Truth Unclean Items" <<<"$icloud_status"; then
+    # Non-idle client state but no per-item listing to verify against - can't
+    # confirm this project specifically is unaffected, so stay conservative.
+    echo "FATAL: iCloud is not idle ($(echo "$non_idle" | head -1)) and no per-item listing" >&2
+    echo "       was available to confirm nothing under $OLD is affected. Investigate before moving." >&2
+    exit 1
+  fi
+  echo "  iCloud: global state busy elsewhere (unrelated items) - nothing pending under $OLD"
+else
+  echo "  iCloud: idle, no unclean items"
 fi
-if grep -q "Client Truth Unclean Items" <<<"$icloud_status"; then
-  echo "FATAL: iCloud reports idle but still lists unclean items - it flipped back to"
-  echo "       active mid-sync during this migration's own planning session even while"
-  echo "       showing idle moments earlier. Wait longer and re-check, don't override."
-  exit 1
-fi
-echo "  iCloud: idle, no unclean items"
 
 echo "==> Stopping LaunchAgents for $PROJECT"
 for label in ${LAUNCH_AGENTS[$PROJECT]:-}; do
@@ -305,7 +344,21 @@ echo "==> Verifying the copy before touching the source"
 # reads both trees (cheap here since ditto clonefile()s on APFS, so both
 # sides share physical blocks until either diverges) and reports any file
 # that's missing, extra, or differs in content on either side.
-diff_output=$(diff -rq "$OLD" "$NEW" 2>&1) || true
+# --no-dereference is required, not optional: a project using the
+# X -> X.nosync symlink convention documented in this portfolio's CLAUDE.md
+# (.git -> .git.nosync, .venv -> .venv.nosync - confirmed live on scribe)
+# has the real target directory reachable two ways within the same parent
+# (directly, and via the sibling symlink) - diff's cycle-detection can't
+# tell that apart from a genuine infinite loop and reports a false-positive
+# "Directory loop detected" without this flag. Same story one level deeper
+# for Swift Package Manager's .build/debug -> arm64-.../debug convenience
+# symlinks (also confirmed live on scribe). --no-dereference compares
+# symlinks as symlinks (by target string, which ditto preserves unchanged)
+# instead of walking into what they point to, which also means it no longer
+# double-visits (and double-reports) the same real content reachable via
+# both the symlink and its target - not a loss of verification coverage,
+# since the real target directory is still walked and compared directly.
+diff_output=$(diff -rq --no-dereference "$OLD" "$NEW" 2>&1) || true
 if [ -n "$diff_output" ]; then
   echo "FATAL: ditto copy differs from source:" >&2
   echo "$diff_output" | sed 's/^/    /' >&2
@@ -365,9 +418,14 @@ if [ -e "$NEW_GIT_DIR/.git" ]; then
     echo "       Source left untouched at $OLD - investigate before retrying." >&2
     exit 1
   }
+  # Same .git.nosync symlink-resolution quirk as the preflight worktree
+  # checks above: the main worktree isn't always listed as exactly
+  # $NEW_GIT_DIR, so use the guaranteed-first entry instead of a literal
+  # path match.
+  main_worktree_path=$(sed -n '1s/^worktree //p' <<<"$worktree_list_output")
   broken_worktrees=""
   while IFS= read -r wt_path; do
-    [ "$wt_path" = "$NEW_GIT_DIR" ] && continue
+    [ "$wt_path" = "$main_worktree_path" ] && continue
     common_dir=$(git -C "$wt_path" rev-parse --git-common-dir 2>&1) || { broken_worktrees="$broken_worktrees $wt_path"; continue; }
     case "$common_dir" in
       /*) common_dir_abs="$common_dir" ;;
@@ -398,7 +456,7 @@ fi
 # is as tight as achievable without real locking (not available here -
 # it's exactly the coordinator that deadlocks and drove this script to
 # ditto in the first place).
-final_diff=$(diff -rq "$OLD" "$NEW" 2>&1) || true
+final_diff=$(diff -rq --no-dereference "$OLD" "$NEW" 2>&1) || true
 if [ -n "$final_diff" ]; then
   echo "FATAL: $OLD changed since the earlier verification - not safe to delete:" >&2
   echo "$final_diff" | sed 's/^/    /' >&2
