@@ -70,6 +70,90 @@ _Archived 2026-07-14: **cyber-proposals** (removed), **cyber-eac-tool** (`_archi
 
 ---
 
+## rfp-automation lives outside this tree
+
+As of 2026-08-05, **rfp-automation is no longer under `~/Documents/dev/`** —
+it was relocated in full to `~/dev/rfp-automation` to get it off iCloud
+entirely, which makes the `.venv.nosync` workaround below moot for that
+project (nothing there is iCloud-synced anymore) — but its venv still uses
+the same `.venv → .venv.nosync` symlink layout for consistency with the rest
+of the portfolio's tooling. `~/dev` is the separate `dev-portfolio` git repo;
+`rfp-automation/` is listed
+in its `.gitignore` so the moved project's files (including CUI-bearing
+`projects/`) never enter that repo's tracked history. All 8 launchd agents
+(dashboard, watcher, sentryloop, logrotate, optimizeloop, plannerchrome,
+portalchrome, dashboard-healthcheck) and their `output/live_monitor/` plist
+sources were repointed at the new path; `account-store` (a dependency, not
+moved) is still referenced from its original `~/Documents/dev/account-store`
+absolute path. Start sessions for this project from `~/dev/rfp-automation`,
+not here.
+
+## niagara-config, niagara-docs, niagara-llm, niagara-mcp-integration live outside this tree
+
+As of 2026-08-05, these four are no longer under `~/Documents/dev/` — moved
+to `~/dev/` for the same iCloud reasons as rfp-automation above. All are
+listed in `~/dev/.gitignore`. No launchd agents reference any of them (the
+`actions.runner.ogreen111-niagara-llm.*` self-hosted CI runner clones from
+GitHub, not the local path, so it's unaffected). `niagara-llm`'s server was
+stopped and restarted from the new location (still port 8770); its
+dependency on `niagara-config` (`pyproject.toml`'s
+`niagara-config = { path = "../niagara-config", editable = true }`) is a
+relative path that still resolves since both moved as siblings. `git
+worktree repair` was run on both `niagara-config` and `niagara-llm` (3
+linked worktrees under `niagara-llm/.claude/worktrees/`) to fix the
+absolute-path worktree admin links.
+
+**digital-twin still lives in `~/Documents/dev/` and depends on
+`niagara-config` via a relative path** (`frcs-digital-twin/requirements.txt`:
+`-e ../../niagara-config`) that broke when niagara-config moved out from
+under it. Fixed by switching to an absolute path
+(`-e /Users/ogreen/dev/niagara-config`), matching how `account-store` is
+already referenced across the portfolio. If digital-twin itself is ever
+moved, revisit this back to a relative path.
+
+Moving `niagara-docs` (134GB) and `niagara-llm` (837MB, several worktrees)
+surfaced a real gotcha: **plain `mv` deadlocks on the `rename()` syscall**
+for anything under the iCloud-synced `~/Documents/dev`, even when `stat -f`
+shows the source and `~/dev` on the same device — iCloud's file-provider
+daemon still intercepts and can hang indefinitely. `ditto` (copy via
+read/write syscalls, APFS clone-aware so it's still fast) avoids the
+coordinator entirely; used for all four moves here, each verified
+(file-count diff, git HEAD/status match, or per-file size diff for
+niagara-docs) before deleting the source. A pre-existing
+`~/Documents/dev/scripts/migrate-project.sh` (built per
+`.plans/dev-relocation/`, a broader, partially-executed multi-project
+relocation plan authored 2026-08-01 — Batch 0 done, batches 1+ not yet run)
+uses plain `mv` and will hit the same deadlock — worth patching to use
+`ditto` before that plan's remaining batches run. Also: two stray,
+already-hung `mv` background processes (targeting `project-tracking` and,
+separately, `niagara-docs`) were found and killed during this session's
+move without having touched any data — one predated this session
+entirely, the other was this session's own first (later-abandoned) attempt
+at `niagara-docs` before switching to `ditto`.
+
+---
+
+## project-tracking lives outside this tree
+
+As of 2026-08-05, **project-tracking is no longer under `~/Documents/dev/`** —
+it was relocated in full to `~/dev/project-tracking` to get it off iCloud
+entirely, which makes the `.venv.nosync` workaround below moot for that
+project (nothing there is iCloud-synced anymore) — its venv was rebuilt
+fresh at the new path rather than moved, but still uses the same
+`.venv → .venv.nosync` symlink layout for consistency with the rest of the
+portfolio's tooling. `~/dev` is the separate `dev-portfolio` git repo;
+`project-tracking/` was already listed in
+its `.gitignore` so the moved project's files never enter that repo's tracked
+history. All 4 launchd agents (project-tracking, project-tracking-snapshot,
+project-tracking-sage-prewarm, project-tracking-exec-report) and their
+`~/Library/LaunchAgents/*.plist` sources were repointed at the new path;
+`account-store` (a dependency, not moved) is still referenced from its
+original `~/Documents/dev/account-store` absolute path, symlinked into the
+new venv's site-packages per `AGENTS.md`'s setup recipe. Start sessions for
+this project from `~/dev/project-tracking`, not here.
+
+---
+
 ## Virtualenvs: keep them in `.venv.nosync` (iCloud workaround)
 
 `~/Documents` is iCloud-synced on this Mac. iCloud Drive sets the macOS
@@ -89,10 +173,10 @@ entirely and never get flagged.
   (only when nothing is running from the venv). Ensure `.gitignore` uses
   `.venv*`, not `.venv/` (a symlink isn't matched by the trailing-slash form).
 - Migrated so far: project-monitor, ssi-design-system, niagara-llm, sanguine,
-  digital-twin/frcs-digital-twin (`.venv` is a symlink to `.venv.nosync`).
-  Partially migrated (`.venv.nosync` exists alongside a plain, un-symlinked
-  `.venv`) — migrate on next touch: email-processor (skipped because its
-  server was running from `.venv`), rfp-automation, project-tracking.
+  digital-twin/frcs-digital-twin, rfp-automation, project-tracking (`.venv` is
+  a symlink to `.venv.nosync`). Partially migrated (`.venv.nosync` exists
+  alongside a plain, un-symlinked `.venv`) — migrate on next touch:
+  email-processor (skipped because its server was running from `.venv`).
 - Don't write per-file workarounds (runtime import shims, chflags hooks) —
   they lose the race or rot.
 
@@ -132,7 +216,7 @@ Reserved ports for the dev portfolio. Each app binds its assigned port on startu
 |---|---|---|---|
 | 8000 | network-scanner | FastAPI backend | `cd network-scanner && .venv/bin/uvicorn scanner.app:app --host 0.0.0.0 --port 8000` |
 | 8002 | cert-manager | FastAPI backend | `cd cert-manager/backend && .venv/bin/uvicorn app.main:app --port 8002` |
-| 8008 | rfp-automation | dashboard (stdlib HTTP) | `cd rfp-automation && .venv/bin/rfp-auto dashboard` (reads `RFP_DASHBOARD_PORT` from `.env`) |
+| 8008 | rfp-automation | dashboard (stdlib HTTP) | `cd ~/dev/rfp-automation && .venv/bin/rfp-auto dashboard` (reads `RFP_DASHBOARD_PORT` from `.env`) |
 | 8080 | digital-twin | Flask HMI | `cd digital-twin/frcs-digital-twin && WEB_HMI_PORT=8080 .venv/bin/python -m twin.cli run` |
 | 8081 | digital-twin | Niagara oBIX server (emulator) | `cd digital-twin/frcs-digital-twin && TWIN_ENABLE_NIAGARA=1 .venv/bin/python -m twin.cli run` (gated by `TWIN_ENABLE_NIAGARA=1`) |
 | 8082 | digital-twin | Niagara REST/BQL endpoint (emulator) | same process as oBIX above (`NIAGARA_BQL_PORT`) |
@@ -140,9 +224,9 @@ Reserved ports for the dev portfolio. Each app binds its assigned port on startu
 | 8737 | dev-portfolio | Plain HTTP (`ThreadingHTTPServer`), no TLS — `PORTFOLIO_SSL_CERTFILE`/`KEYFILE` are set but `portfolio_server.py` never reads them (details/caveats: [PORTS.md](PORTS.md)) | `launchctl kickstart -k gui/$(id -u)/com.ssi.portfolio` (binds 0.0.0.0:8737) |
 | 8765 | email-processor | FastAPI + uvicorn | `cd email-processor && uv run email-intake serve` |
 | 8767 | past-performance | FastAPI + uvicorn | `cd past-performance && .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8767` |
-| 8768 | project-tracking | FastAPI + uvicorn | `cd project-tracking && PT_PORT=8768 .venv/bin/python -m webapp` |
+| 8768 | project-tracking | FastAPI + uvicorn | `cd ~/dev/project-tracking && PT_PORT=8768 .venv/bin/python -m webapp` |
 | 8769 | project-monitor | FastAPI + uvicorn | `cd project-monitor && PM_PORT=8769 .venv/bin/project-monitor run` |
-| 8770 | niagara-llm | FastAPI + dashboard | `cd niagara-llm && uv run niagara-llm run` |
+| 8770 | niagara-llm | FastAPI + dashboard | `cd ~/dev/niagara-llm && uv run niagara-llm run` |
 | 8771 | sanguine | FastAPI + dashboard | `cd sanguine && uv run sanguine run` (reads `SANGUINE_PORT`) |
 | 8772 | cyber-brain | FastAPI + dashboard | `cd cyber-brain && uv run cyber-brain run` (reads `CB_HOST`/`CB_PORT`; binds 127.0.0.1 by default) |
 | 8773 | project-creation | FastAPI (default `PROJECT_CREATION_PORT`) | reserved — `project_creation.app:create_app()` exists but the CLI (`project-creation`) is still a stub with no `run`/uvicorn wiring yet |
