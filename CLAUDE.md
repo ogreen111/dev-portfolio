@@ -103,14 +103,6 @@ worktree repair` was run on both `niagara-config` and `niagara-llm` (3
 linked worktrees under `niagara-llm/.claude/worktrees/`) to fix the
 absolute-path worktree admin links.
 
-**digital-twin still lives in `~/Documents/dev/` and depends on
-`niagara-config` via a relative path** (`frcs-digital-twin/requirements.txt`:
-`-e ../../niagara-config`) that broke when niagara-config moved out from
-under it. Fixed by switching to an absolute path
-(`-e /Users/ogreen/dev/niagara-config`), matching how `account-store` is
-already referenced across the portfolio. If digital-twin itself is ever
-moved, revisit this back to a relative path.
-
 Moving `niagara-docs` (134GB) and `niagara-llm` (837MB, several worktrees)
 surfaced a real gotcha: **plain `mv` deadlocks on the `rename()` syscall**
 for anything under the iCloud-synced `~/Documents/dev`, even when `stat -f`
@@ -130,6 +122,24 @@ separately, `niagara-docs`) were found and killed during this session's
 move without having touched any data — one predated this session
 entirely, the other was this session's own first (later-abandoned) attempt
 at `niagara-docs` before switching to `ditto`.
+
+## digital-twin lives outside this tree
+
+As of 2026-08-05, **digital-twin is no longer under `~/Documents/dev/`** —
+it was relocated in full (the `frcs-digital-twin/` git repo, plus the
+untracked `supporting/` architecture docs) to `~/dev/digital-twin/` via
+`ditto`, verified by file-count/size diff and git HEAD/status match against
+the Documents copy before deleting the source. `~/dev` is the separate
+`dev-portfolio` git repo; `digital-twin/` is listed in its `.gitignore` so
+the moved project's files never enter that repo's tracked history. The
+`niagara-config` dependency fix mentioned above (`requirements.txt` pinned
+to the absolute path `-e /Users/ogreen/dev/niagara-config`) was still
+uncommitted in the old Documents copy — carried over to the new location as
+uncommitted changes rather than reverted to a relative path, kept absolute
+for consistency with how `account-store` is referenced elsewhere in the
+portfolio. The `com.ssi.digital-twin` launchd agent (port 8080; not running
+at move time) was repointed at the new path. Start sessions for this
+project from `~/dev/digital-twin/frcs-digital-twin`, not here.
 
 ---
 
@@ -217,8 +227,8 @@ Reserved ports for the dev portfolio. Each app binds its assigned port on startu
 | 8000 | network-scanner | FastAPI backend | `cd network-scanner && .venv/bin/uvicorn scanner.app:app --host 0.0.0.0 --port 8000` |
 | 8002 | cert-manager | FastAPI backend | `cd cert-manager/backend && .venv/bin/uvicorn app.main:app --port 8002` |
 | 8008 | rfp-automation | dashboard (stdlib HTTP) | `cd ~/dev/rfp-automation && .venv/bin/rfp-auto dashboard` (reads `RFP_DASHBOARD_PORT` from `.env`) |
-| 8080 | digital-twin | Flask HMI | `cd digital-twin/frcs-digital-twin && WEB_HMI_PORT=8080 .venv/bin/python -m twin.cli run` |
-| 8081 | digital-twin | Niagara oBIX server (emulator) | `cd digital-twin/frcs-digital-twin && TWIN_ENABLE_NIAGARA=1 .venv/bin/python -m twin.cli run` (gated by `TWIN_ENABLE_NIAGARA=1`) |
+| 8080 | digital-twin | Flask HMI | `cd ~/dev/digital-twin/frcs-digital-twin && WEB_HMI_PORT=8080 .venv/bin/python -m twin.cli run` |
+| 8081 | digital-twin | Niagara oBIX server (emulator) | `cd ~/dev/digital-twin/frcs-digital-twin && TWIN_ENABLE_NIAGARA=1 .venv/bin/python -m twin.cli run` (gated by `TWIN_ENABLE_NIAGARA=1`) |
 | 8082 | digital-twin | Niagara REST/BQL endpoint (emulator) | same process as oBIX above (`NIAGARA_BQL_PORT`) |
 | 8736 | scribe | uvicorn terminates TLS directly (mkcert cert), no reverse proxy | LaunchAgent `com.ssi.scribe` (https://host:8736) |
 | 8737 | dev-portfolio | Plain HTTP (`ThreadingHTTPServer`), no TLS — `PORTFOLIO_SSL_CERTFILE`/`KEYFILE` are set but `portfolio_server.py` never reads them (details/caveats: [PORTS.md](PORTS.md)) | `launchctl kickstart -k gui/$(id -u)/com.ssi.portfolio` (binds 0.0.0.0:8737) |
