@@ -100,7 +100,7 @@ if [ -e "$GIT_DIR/.git" ]; then
     echo "       FORCE_NO_REMOTE=1 $0 $PROJECT to skip this check."
     [ "${FORCE_NO_REMOTE:-0}" = "1" ] || exit 1
     echo "  git: no remote (FORCE_NO_REMOTE=1 set, proceeding without push verification)"
-  elif ! git -C "$GIT_DIR" fetch origin --quiet; then
+  elif ! git -C "$GIT_DIR" fetch origin --quiet --prune; then
     echo "FATAL: 'git fetch origin' failed for $PROJECT, so push status cannot be verified against current origin state."
     echo "       Confirm by hand that nothing here would be lost before re-running with"
     echo "       FORCE_NO_REMOTE=1 $0 $PROJECT to skip this check."
@@ -117,6 +117,61 @@ if [ -e "$GIT_DIR/.git" ]; then
       echo "FATAL: $PROJECT has commits not on origin/$branch. Push first."
       exit 1
     else
+      # The checked-out branch being clean doesn't mean the whole repo is
+      # backed up: a different local branch can carry commits origin has
+      # never seen. ditto below copies the entire .git object database
+      # regardless, so nothing is actually lost by the move itself, but the
+      # point of this preflight is real confidence that origin already has
+      # a copy before anything is touched.
+      branch_heads=$(git -C "$GIT_DIR" for-each-ref --format='%(refname:short)' refs/heads) || {
+        echo "FATAL: could not list local branches in $GIT_DIR." >&2
+        exit 1
+      }
+      # Checked per-branch against every origin/* ref (not just a
+      # same-named one) via rev-list, not by requiring a same-named
+      # origin/<branch> to exist first - a branch with no origin
+      # counterpart at all is exactly the case this needs to catch, and a
+      # branch whose commits already landed on origin under a different
+      # name correctly stays unflagged.
+      other_branches_unpushed=""
+      while IFS= read -r b; do
+        [ -z "$b" ] && continue
+        [ "$b" = "$branch" ] && continue
+        # Capture rev-list's own failure explicitly - piping straight into
+        # [ -n "$(...)" ] would treat a rev-list error (corrupt object,
+        # broken ref) the same as "no unpushed commits" and silently wave
+        # the branch through instead of aborting on an unknown state.
+        b_unpushed=$(git -C "$GIT_DIR" rev-list "$b" --not --remotes=origin 2>&1) || {
+          echo "FATAL: could not compute unpushed commits for local branch '$b' in $GIT_DIR:" >&2
+          echo "$b_unpushed" | sed 's/^/    /' >&2
+          exit 1
+        }
+        if [ -n "$b_unpushed" ]; then
+          other_branches_unpushed="$other_branches_unpushed $b"
+        fi
+      done < <(printf '%s\n' "$branch_heads")
+      if [ -n "$other_branches_unpushed" ]; then
+        echo "FATAL: $PROJECT has local branches with commits absent from every origin ref:" >&2
+        echo "$other_branches_unpushed" | tr ' ' '\n' | sed '/^$/d;s/^/    /' >&2
+        echo "       Push these first, or switch to and push each before re-running." >&2
+        exit 1
+      fi
+      # Local-only tags are just a warning, not a FATAL - unlike branches,
+      # tags don't have an implied "should be pushed" workflow, so their
+      # absence from origin isn't necessarily a problem worth blocking on.
+      local_tags=$(git -C "$GIT_DIR" for-each-ref --format='%(refname:short)' refs/tags 2>/dev/null || true)
+      if [ -n "$local_tags" ]; then
+        remote_tags=$(git -C "$GIT_DIR" ls-remote --tags origin 2>/dev/null | sed -E 's#^[^[:space:]]+[[:space:]]+refs/tags/##; s/\^\{\}$//' || true)
+        local_only_tags=""
+        while IFS= read -r t; do
+          [ -z "$t" ] && continue
+          grep -Fxq "$t" <<<"$remote_tags" || local_only_tags="$local_only_tags $t"
+        done <<<"$local_tags"
+        if [ -n "$local_only_tags" ]; then
+          echo "  WARNING: local-only tags not found on origin (not blocking - review/push manually):"
+          echo "$local_only_tags" | tr ' ' '\n' | sed '/^$/d;s/^/    /'
+        fi
+      fi
       echo "  git: clean, fully pushed to origin/$branch"
     fi
   fi
@@ -287,16 +342,36 @@ rm -rf "$OLD"
 # regex metacharacter that can appear in it is '.', which must be escaped
 # so it matches a literal dot instead of "any character" in the patterns below.
 PROJECT_SED_ESCAPED=$(printf '%s' "$PROJECT" | sed 's/\./\\./g')
+OLD_PATH_ESCAPED="$HOME/Documents/dev/$PROJECT_SED_ESCAPED"
+NEW_PATH_ESCAPED="$HOME/dev/$PROJECT_SED_ESCAPED"
+# Boundary group after the project name so migrating "foo" doesn't also
+# rewrite an unrelated "Documents/dev/foo-backup" or "Documents/dev/foo+old"
+# sibling path (real macOS filenames can contain characters PROJECT itself
+# never will, so the boundary can't just be "anything outside PROJECT's own
+# charset" - that incorrectly treats a real filename character like '+' as
+# a delimiter and clobbers an unrelated path). Enumerates the separators
+# that can actually follow a path inside a plist's ProgramArguments/command
+# string: /, quote, <, >, whitespace, a shell delimiter (; & | )), or ':'
+# (PATH-style EnvironmentVariables values like
+# "PYTHONPATH=/old/project:/other" are a real LaunchAgent pattern in this
+# portfolio), or end-of-line.
+PATH_BOUNDARY_RE="[/'\"<>;&|):[:space:]]|\$"
 
 echo "==> Repointing LaunchAgent plists for $PROJECT"
 for label in ${LAUNCH_AGENTS[$PROJECT]:-}; do
   plist="$HOME/Library/LaunchAgents/$label.plist"
   [ -f "$plist" ] || { echo "  WARNING: $plist not found, skipping"; continue; }
-  # Boundary group (/, quote, <, whitespace, or end-of-line) after the project
-  # name so migrating "foo" doesn't also rewrite an unrelated
-  # "Documents/dev/foo-backup" path, while still matching plist commands like
-  # "cd /Users/x/Documents/dev/foo && ..." where a space follows.
-  sed -i '' -E "s#($HOME/Documents/dev/$PROJECT_SED_ESCAPED)([/'\"<[:space:]]|\$)#$HOME/dev/$PROJECT_SED_ESCAPED\2#g" "$plist"
+  sed -i '' -E "s#($OLD_PATH_ESCAPED)($PATH_BOUNDARY_RE)#$NEW_PATH_ESCAPED\2#g" "$plist"
+  # Verify the sed actually caught every occurrence instead of trusting a
+  # zero exit code (sed exits 0 whether or not it matched anything) - a
+  # boundary character this regex doesn't know about would otherwise leave
+  # the plist silently pointed at the now-deleted $OLD.
+  if grep -Eq "$OLD_PATH_ESCAPED($PATH_BOUNDARY_RE)" "$plist"; then
+    echo "FATAL: $plist still references $HOME/Documents/dev/$PROJECT after repointing -" >&2
+    echo "       the boundary regex didn't match every occurrence. Fix the plist by hand," >&2
+    echo "       then bootstrap it (see WARNING above for LaunchAgents left stopped)." >&2
+    exit 1
+  fi
   echo "  repointed $plist"
 done
 
