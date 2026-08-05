@@ -162,6 +162,42 @@ original `~/Documents/dev/account-store` absolute path, symlinked into the
 new venv's site-packages per `AGENTS.md`'s setup recipe. Start sessions for
 this project from `~/dev/project-tracking`, not here.
 
+## email-processor lives outside this tree
+
+As of 2026-08-05, **email-processor is no longer under `~/Documents/dev/`** —
+it was relocated in full to `~/dev/email-processor` via `ditto`, verified by
+byte-level `diff -rq` (18,474 entries, clean) and git HEAD match against the
+Documents copy before deleting the source. The repo had uncommitted changes
+at move time (`git stash -u`, popped back cleanly at the new location — same
+working-tree diff before and after). `~/dev` is the separate `dev-portfolio`
+git repo; `email-processor/` is listed in its `.gitignore` so the moved
+project's files never enter that repo's tracked history. Both LaunchAgents
+(`com.ssi.email-intake.webserver`, `com.ssi.email-intake.watcher`) and
+`scripts/webserver-entrypoint.sh`'s working directory were repointed at the
+new path.
+
+This was the project noted below as "partially migrated" (`.venv.nosync`
+alongside a plain, un-symlinked `.venv`, skipped earlier because its server
+was running from `.venv`) — that's now resolved. Moving broke the console
+scripts: Python venv entry points (`.venv/bin/email-intake`, etc.) bake in an
+absolute shebang to the venv's own interpreter at creation time, so it kept
+crash-looping (`Failed to spawn: email-intake ... No such file or
+directory`) even after the plist/entrypoint repointing above succeeded.
+Fixed by rebuilding the venv fresh at the new path: `uv sync --dev` (plain
+`uv sync`, without `--dev`, silently skipped installing the project's own
+`email-intake` console script — this project's Makefile always uses `--dev`,
+so match it, not the shorter recipe below), then re-editable-installed
+`account_store` (`uv pip install --python .venv/bin/python -e
+~/Documents/dev/account-store` — not a `pyproject.toml` dependency, so `uv
+sync` alone never restores it) from its still-unmoved original location, then
+fixed a stray real `.venv` directory left over from an earlier `uv sync` run
+back into the intended `.venv → .venv.nosync` symlink. Both LaunchAgents were
+bounced (`bootout` + `bootstrap`) and confirmed running with live PIDs
+afterward; `make serve`/`make watch-once`/etc. still apply the
+`chflags nohidden .venv/lib/python*/site-packages/*.pth` workaround this
+project's own Makefile documents, so prefer those over a bare `uv run`. Start
+sessions for this project from `~/dev/email-processor`, not here.
+
 ---
 
 ## Virtualenvs: keep them in `.venv.nosync` (iCloud workaround)
@@ -183,10 +219,8 @@ entirely and never get flagged.
   (only when nothing is running from the venv). Ensure `.gitignore` uses
   `.venv*`, not `.venv/` (a symlink isn't matched by the trailing-slash form).
 - Migrated so far: project-monitor, ssi-design-system, niagara-llm, sanguine,
-  digital-twin/frcs-digital-twin, rfp-automation, project-tracking (`.venv` is
-  a symlink to `.venv.nosync`). Partially migrated (`.venv.nosync` exists
-  alongside a plain, un-symlinked `.venv`) — migrate on next touch:
-  email-processor (skipped because its server was running from `.venv`).
+  digital-twin/frcs-digital-twin, rfp-automation, project-tracking,
+  email-processor (`.venv` is a symlink to `.venv.nosync`).
 - Don't write per-file workarounds (runtime import shims, chflags hooks) —
   they lose the race or rot.
 
@@ -232,7 +266,7 @@ Reserved ports for the dev portfolio. Each app binds its assigned port on startu
 | 8082 | digital-twin | Niagara REST/BQL endpoint (emulator) | same process as oBIX above (`NIAGARA_BQL_PORT`) |
 | 8736 | scribe | uvicorn terminates TLS directly (mkcert cert), no reverse proxy | LaunchAgent `com.ssi.scribe` (https://host:8736) |
 | 8737 | dev-portfolio | Plain HTTP (`ThreadingHTTPServer`), no TLS — `PORTFOLIO_SSL_CERTFILE`/`KEYFILE` are set but `portfolio_server.py` never reads them (details/caveats: [PORTS.md](PORTS.md)) | `launchctl kickstart -k gui/$(id -u)/com.ssi.portfolio` (binds 0.0.0.0:8737) |
-| 8765 | email-processor | FastAPI + uvicorn | `cd email-processor && uv run email-intake serve` |
+| 8765 | email-processor | FastAPI + uvicorn | `cd ~/dev/email-processor && make serve` (applies the `chflags nohidden` .pth workaround; a bare `uv run` re-hides the file on its next sync) |
 | 8767 | past-performance | FastAPI + uvicorn | `cd past-performance && .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8767` |
 | 8768 | project-tracking | FastAPI + uvicorn | `cd ~/dev/project-tracking && PT_PORT=8768 .venv/bin/python -m webapp` |
 | 8769 | project-monitor | FastAPI + uvicorn | `cd project-monitor && PM_PORT=8769 .venv/bin/project-monitor run` |
