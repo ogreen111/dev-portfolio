@@ -198,6 +198,37 @@ afterward; `make serve`/`make watch-once`/etc. still apply the
 project's own Makefile documents, so prefer those over a bare `uv run`. Start
 sessions for this project from `~/dev/email-processor`, not here.
 
+## cert-manager lives outside this tree
+
+As of 2026-08-05, **cert-manager is no longer under `~/Documents/dev/`** —
+it was relocated in full to `~/dev/cert-manager` via `ditto`, verified by
+byte-level `diff -rq` (21,233 entries, clean) and git HEAD match against the
+Documents copy before deleting the source. The repo had one uncommitted
+change (`CLAUDE.md` doc updates), stashed before the move and popped back
+cleanly at the new location. `~/dev` is the separate `dev-portfolio` git
+repo; `cert-manager/` is listed in its `.gitignore` so the moved project's
+files never enter that repo's tracked history. Both LaunchAgents
+(`com.ssi.cert-manager-frontend`, `com.ssi.cert-manager-backend`) were
+repointed at the new path.
+
+Same stale-shebang fallout as email-processor above hit `backend/.venv`
+(`.venv/bin/uvicorn`'s shebang still pointed at the deleted
+`.../Documents/dev/cert-manager/backend/.venv/bin/python3.14`, so the
+backend crash-looped even after the plist repointing succeeded) — but this
+project isn't part of the `.venv.nosync` convention at all (plain `.venv`,
+no `uv`), so the fix was the project's own documented recipe instead:
+`rm -rf backend/.venv && cd backend && python3 -m venv .venv &&
+.venv/bin/pip install -e ".[dev]"`. `backend/pyproject.toml`'s
+`account-store @ file:///Users/ogreen/Documents/dev/account-store`
+dependency needed no change — that absolute path is still correct since
+account-store hasn't moved. Both LaunchAgents were bounced (`bootout` +
+`bootstrap`) and confirmed live: backend `GET /api/health` → `200
+{"status":"ok"}`, frontend → `200`. A `watcher: CERT_ROOT does not exist`
+line in the backend log is unrelated to this move — `CERT_ROOT` points into
+`~/Library/CloudStorage/OneDrive-...`, not `Documents/dev`, and just wasn't
+mounted/synced at the time. Start sessions for this project from
+`~/dev/cert-manager`, not here.
+
 ---
 
 ## Virtualenvs: keep them in `.venv.nosync` (iCloud workaround)
@@ -259,7 +290,7 @@ Reserved ports for the dev portfolio. Each app binds its assigned port on startu
 | Port | Project | Service | Start command |
 |---|---|---|---|
 | 8000 | network-scanner | FastAPI backend | `cd network-scanner && .venv/bin/uvicorn scanner.app:app --host 0.0.0.0 --port 8000` |
-| 8002 | cert-manager | FastAPI backend | `cd cert-manager/backend && .venv/bin/uvicorn app.main:app --port 8002` |
+| 8002 | cert-manager | FastAPI backend | `cd ~/dev/cert-manager/backend && .venv/bin/uvicorn app.main:app --port 8002` |
 | 8008 | rfp-automation | dashboard (stdlib HTTP) | `cd ~/dev/rfp-automation && .venv/bin/rfp-auto dashboard` (reads `RFP_DASHBOARD_PORT` from `.env`) |
 | 8080 | digital-twin | Flask HMI | `cd ~/dev/digital-twin/frcs-digital-twin && WEB_HMI_PORT=8080 .venv/bin/python -m twin.cli run` |
 | 8081 | digital-twin | Niagara oBIX server (emulator) | `cd ~/dev/digital-twin/frcs-digital-twin && TWIN_ENABLE_NIAGARA=1 .venv/bin/python -m twin.cli run` (gated by `TWIN_ENABLE_NIAGARA=1`) |
@@ -275,7 +306,7 @@ Reserved ports for the dev portfolio. Each app binds its assigned port on startu
 | 8772 | cyber-brain | FastAPI + dashboard | `cd cyber-brain && uv run cyber-brain run` (reads `CB_HOST`/`CB_PORT`; binds 127.0.0.1 by default) |
 | 8773 | project-creation | FastAPI (default `PROJECT_CREATION_PORT`) | reserved — `project_creation.app:create_app()` exists but the CLI (`project-creation`) is still a stub with no `run`/uvicorn wiring yet |
 | 8774 | fulcrum-replacement | FastAPI + offline-first mobile app (planned) | reserved only — `fulcrum-replacement/` has no `pyproject.toml` or app code yet, just `DESIGN.md`/`DESIGN.docx`; no start command exists until it's built |
-| 5173 | cert-manager | Vite frontend (proxies `/api` → 8002) | `cd cert-manager/frontend && npm run dev` |
+| 5173 | cert-manager | Vite frontend (proxies `/api` → 8002) | `cd ~/dev/cert-manager/frontend && npm run dev` |
 
 **Notes:**
 
