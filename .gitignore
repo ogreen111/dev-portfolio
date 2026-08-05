@@ -15,7 +15,10 @@ ethernet-link-analyzer/
 floor-plan-editor/
 kml/
 network-scanner/
+niagara-config/
 niagara-docs/
+niagara-llm/
+niagara-mcp-integration/
 outlook-followup/
 past-performance/
 project-tracking/
@@ -27,9 +30,6 @@ daily-summary/
 claude-memory-compiler/
 cyber-brain/
 fulcrum-replacement/
-niagara-config/
-niagara-llm/
-niagara-mcp-integration/
 project-monitor/
 sanguine/
 scribe/
