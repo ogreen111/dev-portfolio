@@ -1,6 +1,6 @@
 # Dev Portfolio — Claude Context
 
-This directory (`~/dev/`) is the `dev-portfolio` git repo — the growing home for projects relocated off iCloud from the primary workspace at `~/Documents/dev/` (currently rfp-automation and project-tracking; see the "lives outside this tree" notes in that file's CLAUDE.md for precedent). The registry below mirrors the full 31-project portfolio, organized around three core domains:
+This directory (`~/dev/`) is the `dev-portfolio` git repo — the growing home for projects relocated off iCloud from the primary workspace at `~/Documents/dev/` (see the "lives outside this tree" notes in that file's CLAUDE.md for the current list and precedent). The registry below mirrors the full 31-project portfolio, organized around three core domains:
 
 1. **DoD/MILCON cybersecurity proposal automation** — RFP intake → pricing → tech proposal → EAC tracking
 2. **BAS/OT network engineering** — passive discovery, BACnet simulation, site scanning, hardware prototypes
