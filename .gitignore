@@ -34,6 +34,7 @@ fulcrum-replacement/
 project-monitor/
 sanguine/
 scribe/
+siem-forwarder/
 sops/
 stream-deck/
 trim-backup/
