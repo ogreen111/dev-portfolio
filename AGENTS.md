@@ -1,4 +1,4 @@
-# Dev Portfolio — Claude Context
+# Dev Portfolio — Codex Context
 
 This is the `dev-portfolio` git repo, checked out in two places on this
 Mac: `~/dev/` (primary, non-iCloud-synced — the destination for the
