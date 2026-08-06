@@ -386,6 +386,33 @@ see, so it would have silently broken the memory-compiler's automatic
 flush hooks on every future session event. Fixed by hand and verified
 (`hooks/session-start.py` runs correctly from the new path).
 
+## ethernet-link-analyzer, virtual-devices, trim-backup, sops, stream-deck, fulcrum-replacement live outside this tree
+
+As of 2026-08-05, these six are no longer under `~/Documents/dev/` — moved
+to `~/dev/` in a batch. `sops`, `stream-deck`, and `fulcrum-replacement`
+have no `.git` of their own (gitignored, untracked plain directories, same
+as `outlook-followup`/`kml` earlier). `ethernet-link-analyzer` had a
+nested Claude Code worktree (`.claude/worktrees/vibrant-rubin-571ac8`,
+branch `claude/vibrant-rubin-571ac8`) with **real uncommitted work** (4
+modified files, an in-progress LLDP/parser fix) - unlike every prior
+nested-worktree case, which were all clean/detached-HEAD. Handled by
+stashing inside the worktree, removing it, migrating, then recreating the
+worktree at the new location on the same branch (`git worktree add`) and
+popping the stash back - fully verified identical afterward. `virtual-devices`
+and `ethernet-link-analyzer` both had stale-shebang venvs, rebuilt per
+each project's own documented recipe (the latter has a real macOS +
+Python 3.14 hidden-`.pth` gotcha independent of iCloud - see its own
+README - requiring `chflags -R nohidden .venv` after install).
+
+**Also discovered this round: `project-creation` and `deploy` are *not*
+independent projects either** - like `siem-forwarder`, they have no `.git`
+of their own, but unlike `sops`/`stream-deck`/`fulcrum-replacement` they
+are **not** gitignored: `project-creation` has 27 files and `deploy` has 1
+file (`com.ssi.portfolio.plist` - this portfolio's own LaunchAgent, doesn't
+belong anywhere else) tracked directly in dev-portfolio's own history.
+Don't run `migrate-project.sh` on either - `git ls-files <dir>` first on
+any project without its own `.git` before attempting to move it.
+
 ---
 
 ## Virtualenvs: keep them in `.venv.nosync` (iCloud workaround)
