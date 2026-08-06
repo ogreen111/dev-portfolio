@@ -404,14 +404,56 @@ each project's own documented recipe (the latter has a real macOS +
 Python 3.14 hidden-`.pth` gotcha independent of iCloud - see its own
 README - requiring `chflags -R nohidden .venv` after install).
 
-**Also discovered this round: `project-creation` and `deploy` are *not*
-independent projects either** - like `siem-forwarder`, they have no `.git`
-of their own, but unlike `sops`/`stream-deck`/`fulcrum-replacement` they
-are **not** gitignored: `project-creation` has 27 files and `deploy` has 1
-file (`com.ssi.portfolio.plist` - this portfolio's own LaunchAgent, doesn't
-belong anywhere else) tracked directly in dev-portfolio's own history.
-Don't run `migrate-project.sh` on either - `git ls-files <dir>` first on
-any project without its own `.git` before attempting to move it.
+**Also discovered this round: `deploy` is *not* an independent project
+either** - like `siem-forwarder`, it has no `.git` of its own and is
+**not** gitignored: its 1 tracked file (`com.ssi.portfolio.plist` - this
+portfolio's own LaunchAgent, doesn't belong anywhere else) lives directly
+in dev-portfolio's own history. Don't run `migrate-project.sh` on it -
+`git ls-files <dir>` first on any project without its own `.git` before
+attempting to move it. (`project-creation` was in this same category -
+see below for how it was resolved.)
+
+## project-creation extracted into its own repo
+
+As of 2026-08-05, **`project-creation` is no longer tracked inside
+dev-portfolio at all** - like `siem-forwarder` and `deploy` above, it had
+no `.git` of its own but (unlike `sops`/`stream-deck`/`fulcrum-replacement`)
+27 files were tracked directly in this repo's own history (5 commits of
+real work: scaffold, Graph app-only auth, SharePoint resolver). Rather
+than just moving it as plain files and losing that history, it was
+properly extracted:
+
+- `git subtree split --prefix=project-creation -b project-creation-extract`
+  rewrote those 5 commits with `project-creation/` stripped from every
+  path, producing a standalone-ready branch.
+- A new private GitHub repo was created
+  (`github.com/ogreen111/project-creation`, matching every other real
+  project's `github.com/ogreen111/<name>` pattern) and the extracted
+  branch pushed to it as `main`.
+- `project-creation/` was `git rm -r --cached` from dev-portfolio (both
+  local clones - see the `~/Documents/dev` vs `~/dev` note above) and
+  added to `.gitignore`, same as every migrated project. The untracked
+  `.plans/` planning docs (never tracked here, per this repo's own
+  gitignore convention) were copied over by hand since `subtree split`
+  only carries tracked history.
+- **Caution if you ever do this again:** don't run `git remote
+  add`/`remote remove` from inside a subdirectory that has no `.git` of
+  its own - it silently falls through to the *parent* repo's git context.
+  Hit this live: a `cd project-creation && git remote add origin
+  <new-repo>` actually repointed `~/dev`'s own dev-portfolio remote before
+  it was caught and fixed. Always clone the extracted branch into a
+  **separate, unrelated path** (e.g. the scratchpad) first, configure its
+  remote there, and only move it into `~/dev/<name>` after the source has
+  been fully removed from dev-portfolio's tracking.
+- `pyproject.toml` has two relative-path dependencies -
+  `account-store = { path = "../account-store", ... }` and `rfp-automation
+  = { path = "../rfp-automation", ... }` - both resolve correctly from
+  `~/dev/project-creation` (the former via the bridge symlink documented
+  above, the latter since `rfp-automation` already lives at
+  `~/dev/rfp-automation` for real). `uv sync --extra dev` (Python 3.12,
+  auto-fetched by uv) didn't create the `.venv` symlink on its own again
+  (same as `sanguine` earlier) - created by hand. Verified: all three
+  modules import, 50 tests collect.
 
 ---
 
