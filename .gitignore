@@ -1,6 +1,4 @@
 # Ignore all project subdirectories — only doc files are tracked
-PRTG Import/
-Pocket Probe/
 account-store
 cert-manager/
 claude-sync/
@@ -21,8 +19,10 @@ niagara-llm/
 niagara-mcp-integration/
 outlook-followup/
 past-performance/
+pocket-probe/
 project-creation/
 project-tracking/
+prtg-import/
 rfp-automation/
 scripts/
 ssi-design-system/

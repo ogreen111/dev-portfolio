@@ -26,8 +26,8 @@ This directory (`~/dev/`) is the `dev-portfolio` git repo — the growing home f
 | ethernet-link-analyzer | Passive LLDP/CDP Ethernet discovery; Pi field appliance w/ touch UI, battery, gated active tests | Phase 4 |
 | virtual-devices | BACnet/IP virtual building fleet (76 devices) | v1 |
 | digital-twin | FRCS HVAC plant digital twin + fault injection; selectable twin models (office-building / barracks-cep campus, mutually exclusive, live-switchable from the HMI), electrical model, ~50-detector FDD (office-building; barracks-cep coverage partial); config-driven mode emulates a real site from a Niagara Supervisor backup (via niagara-config, designed-for future third model) — incl. per-detector role catalog + `config coverage` report, fault injection addressed by real equipment id, findings in real config names, and `config export-fixtures` labeled diagnosis fixtures | v1.12 |
-| Pocket Probe | STM32 LLDP/CDP keychain device | Prototype |
-| PRTG Import | Bulk PRTG device import from CSV | Production |
+| pocket-probe | STM32 LLDP/CDP keychain device | Prototype |
+| prtg-import | Bulk PRTG device import from CSV | Production |
 | kml | KML/topology generation utilities (JBLM) | Utility |
 | cert-manager | Employee training cert tracker | v0 |
 | project-creation | Post-award Cyber SharePoint and Planner provisioning (Graph app-only auth, SharePoint resolver) | Scaffolding — no CLI run command yet |
@@ -487,6 +487,61 @@ to extract or migrate. Confirmed the tracked copy has drifted slightly
 from what's actually installed at `~/Library/LaunchAgents/` (a stale
 comment block about TLS handling) - worth a `cp` sync on next touch, but
 that's routine drift, not a migration blocker.
+
+## pocket-probe and prtg-import live outside this tree (renamed, spaces removed)
+
+As of 2026-08-05, the two projects with spaces in their directory names
+(previously listed as `PRTG Import` and `Pocket Probe` in the registry
+table above, now renamed there too) are now
+`~/dev/pocket-probe` and `~/dev/prtg-import` - `migrate-project.sh`'s own
+project-name safety regex (`^[A-Za-z0-9._-]+$`) rejects spaces outright, so
+both were renamed to kebab-case (matching this portfolio's convention)
+before migrating. Neither rename needed a GitHub rename to match: PRTG
+Import's remote was already `PRTG-Import` (hyphenated); Pocket Probe never
+had one (see below).
+
+**`Pocket Probe`'s git history was corrupted** - `git status` failed with
+"fatal: bad object HEAD", `git fsck` found the ref pointing at a
+nonexistent commit and dozens of missing blobs, and no remote had ever
+been configured. The reflog showed only 2 commits ever existed ("Initial
+commit" and "Add README and MIT LICENSE", both from May). Investigated a
+Time Machine recovery path (`tmutil listbackups` showed history back to
+June 3, which postdates both commits) but the backup destination wasn't
+actually mounted/browsable in this environment. **Critically, the
+*working-tree files* were completely unaffected by the git corruption** -
+`.gitattributes`, `LICENSE`, `README.md`, and the full KiCad
+hardware/STM32 firmware source (1013 files) were all intact; only the
+version-history metadata was broken, and only 2 small early commits'
+worth of it. Resolved by backing up the broken `.git` (see
+`pocket-probe/`'s own git reflog - it's a fresh history now, so the old
+one isn't visible there) and reinitializing fresh from the intact working
+tree as a single commit. Given a real backup, created
+`github.com/ogreen111/pocket-probe` (private) this time and pushed.
+
+**`PRTG Import` had a real, substantial merge conflict** - local `main`
+and `origin/main` had diverged since May: origin had a large refactor
+(site-based grouping, dry-run mode, hardened API, ~965 lines across all 3
+tracked files) that local had never pulled, while local had a smaller
+recent commit (a new `PRTGreport.ps1` uptime-report script, purely
+additive - no actual file overlap) plus 299 lines of *stashed, never
+committed* work based on the old pre-refactor files. The commit-level
+merge (refactor + new report script) applied cleanly with zero real
+conflicts - `git merge-tree` initially looked like it conflicted, but
+that was a misread of its normal informational merge-result diff, not an
+actual `CONFLICT` marker. The *stashed* uncommitted work was the real
+conflict (7 blocks in `PRTGimport.ps1`, 6 in `README.md`, 1 in the config
+example) - it added a `-ValidateOnly` parameter that overlapped in intent
+with the refactor's independently-added `-DryRun`, among other
+CSV-field-flexibility and dedup logic. Rather than guess at reconciling
+PowerShell logic across two independently-evolved feature sets, dropped
+the stash and kept only the clean merge - the `-ValidateOnly` work (and a
+"Tracker Sync" README section documenting `sync-tracker.py`/`gap-report.py`,
+which still exist as untracked files at the new location) can be
+reconciled later by hand if still wanted. Also has an old orphaned nested
+clone at `prtg-import/previous/` (same repo's March root commit, its own
+unmerged uncommitted edits) - carried along as-is per instruction, moved
+via `ditto` (not `mv` - hit the exact same iCloud cross-boundary deadlock
+this whole script exists to avoid, moving it to the scratchpad and back).
 
 ---
 
