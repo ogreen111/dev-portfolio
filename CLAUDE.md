@@ -315,6 +315,35 @@ re-downloading. LaunchAgent confirmed live over HTTPS (`GET /` → 200 on
 :8736, real LAN client traffic visible in logs immediately). Start sessions
 for this project from `~/dev/scribe`, not here.
 
+## cyber-artifact-gen, daily-summary, cyber-brain, outlook-followup, kml live outside this tree
+
+As of 2026-08-05, these five are no longer under `~/Documents/dev/` — moved
+to `~/dev/` in a batch. Much smoother than prior batches: none have
+LaunchAgents, none had nested Claude Code worktrees, and only
+`cyber-artifact-gen` had uncommitted work (4 modified SSi brand-bundle
+files, stashed/restored cleanly). `cyber-brain` has no `.venv` yet on this
+machine (never synced here), so `uv run` will build one fresh with no
+stale-path risk. `outlook-followup` and `kml` have **no `.git` of their
+own** — both are listed in this repo's own `.gitignore` with zero tracked
+files (`git ls-files` confirms), so they moved as plain files with no
+push-safety check possible (the script's documented behavior for non-git
+projects) rather than as independent repos.
+
+Two remaining projects in the registry, **`PRTG Import`** and
+**`Pocket Probe`**, have spaces in their directory names and can't be
+migrated via `migrate-project.sh` as-is — its own project-name safety regex
+(`^[A-Za-z0-9._-]+$`) rejects them outright. Rename (or extend the script)
+before attempting either.
+
+**`account-store`** is deliberately not yet migrated: it's a shared
+dependency, referenced by absolute path (`~/Documents/dev/account-store`)
+from several already-migrated projects' venvs (`cert-manager` has it
+hardcoded in `backend/pyproject.toml`; `email-processor`, `past-performance`,
+`rfp-automation`, and `project-tracking` have it editable-installed from
+that same path, which doesn't show up in a source-tree grep). Moving it
+requires re-pointing every one of those in the same pass — planned as its
+own deliberate session, not folded into a routine batch.
+
 ---
 
 ## Virtualenvs: keep them in `.venv.nosync` (iCloud workaround)
@@ -389,7 +418,7 @@ Reserved ports for the dev portfolio. Each app binds its assigned port on startu
 | 8769 | project-monitor | FastAPI + uvicorn | `cd project-monitor && PM_PORT=8769 .venv/bin/project-monitor run` |
 | 8770 | niagara-llm | FastAPI + dashboard | `cd ~/dev/niagara-llm && uv run niagara-llm run` |
 | 8771 | sanguine | FastAPI + dashboard | `cd sanguine && uv run sanguine run` (reads `SANGUINE_PORT`) |
-| 8772 | cyber-brain | FastAPI + dashboard | `cd cyber-brain && uv run cyber-brain run` (reads `CB_HOST`/`CB_PORT`; binds 127.0.0.1 by default) |
+| 8772 | cyber-brain | FastAPI + dashboard | `cd ~/dev/cyber-brain && uv run cyber-brain run` (reads `CB_HOST`/`CB_PORT`; binds 127.0.0.1 by default) |
 | 8773 | project-creation | FastAPI (default `PROJECT_CREATION_PORT`) | reserved — `project_creation.app:create_app()` exists but the CLI (`project-creation`) is still a stub with no `run`/uvicorn wiring yet |
 | 8774 | fulcrum-replacement | FastAPI + offline-first mobile app (planned) | reserved only — `fulcrum-replacement/` has no `pyproject.toml` or app code yet, just `DESIGN.md`/`DESIGN.docx`; no start command exists until it's built |
 | 5173 | cert-manager | Vite frontend (proxies `/api` → 8002) | `cd ~/dev/cert-manager/frontend && npm run dev` |
