@@ -117,7 +117,7 @@ A summary of all projects under `/Users/ogreen/Documents/dev/`, generated 2026-0
 ## project-tracking
 **Purpose:** Cross-references funding PDFs, labor PDFs, and Microsoft Planner data to produce per-job dashboards covering budget, costs, labor hours, and submittal pipeline. FastAPI web portal with role-based auth.
 **Stack:** Python (FastAPI, pdfplumber, openpyxl, mpxj), React 18 (Vite + TypeScript + Tailwind), account-store.
-**Notes:** v1 with the React SPA (v2 UI) now primary. 2026 additions: Microsoft Graph Planner sync, SharePoint document sourcing, per-job completion-source picker, per-phase/CLIN breakdown + contract/billing rollup from Sage exports, per-job ACLs + sharing, auto-refresh on file change. 42 test files. Port 8768.
+**Notes:** v1 with the React SPA (v2 UI) now primary. 2026 additions: Microsoft Graph Planner sync, SharePoint document sourcing, per-job completion-source picker, per-phase/CLIN breakdown + contract/billing rollup from Sage exports, per-job ACLs + sharing, auto-refresh on file change. 42 test files. Port 443 (self-terminated TLS, no proxy).
 
 ## rfp-automation
 **Purpose:** Automated extraction, analysis, and proposal generation for DoD/MILCON cybersecurity RFPs. Parses specs/drawings, classifies cyber governance (25 05 11 / 25 08 11), extracts scope, builds submittal matrices, generates drafts.

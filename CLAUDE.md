@@ -764,7 +764,7 @@ Reserved ports for the dev portfolio. Each app binds its assigned port on startu
 | 8737 | dev-portfolio | Plain HTTP (`ThreadingHTTPServer`), no TLS — `PORTFOLIO_SSL_CERTFILE`/`KEYFILE` are set but `portfolio_server.py` never reads them (details/caveats: [PORTS.md](PORTS.md)) | `launchctl kickstart -k gui/$(id -u)/com.ssi.portfolio` (binds 0.0.0.0:8737) |
 | 8765 | email-processor | FastAPI + uvicorn | `cd ~/dev/email-processor && make serve` (applies the `chflags nohidden` .pth workaround; a bare `uv run` re-hides the file on its next sync) |
 | 8767 | past-performance | FastAPI + uvicorn | `cd ~/dev/past-performance && .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8767` |
-| 8768 | project-tracking | FastAPI + uvicorn | `cd ~/dev/project-tracking && PT_PORT=8768 .venv/bin/python -m webapp` |
+| 443 | project-tracking | uvicorn terminates TLS directly (mkcert cert), no reverse proxy — cutover complete 2026-07-06, the old plaintext `:8768` endpoint is retired (see `project-tracking/docs/DEPLOYMENT.md`) | LaunchAgent `com.ssi.project-tracking` (https://og-work-mac-studio.local/ or https://10.10.10.92/) |
 | 8769 | project-monitor | FastAPI + uvicorn | `cd ~/dev/project-monitor && PM_PORT=8769 .venv/bin/project-monitor run` |
 | 8770 | niagara-llm | FastAPI + dashboard | `cd ~/dev/niagara-llm && uv run niagara-llm run` |
 | 8771 | sanguine | FastAPI + dashboard | `cd ~/dev/sanguine && uv run sanguine run` (reads `SANGUINE_PORT`) |

@@ -14,7 +14,7 @@ Reserved ports for the dev portfolio. Each app binds its assigned port on startu
 | 8737 | dev-portfolio | Plain HTTP (`ThreadingHTTPServer`), no TLS, per the **installed** `~/Library/LaunchAgents/com.ssi.portfolio.plist` — it sets `PORTFOLIO_SSL_CERTFILE`/`KEYFILE`, but `portfolio_server.py` never reads them, so those env vars are inert | `launchctl kickstart -k gui/$(id -u)/com.ssi.portfolio` (binds 0.0.0.0) |
 | 8765 | email-processor | FastAPI + uvicorn | `cd email-processor && uv run email-intake serve` |
 | 8767 | past-performance | FastAPI + uvicorn | `cd past-performance && .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8767` |
-| 8768 | project-tracking | FastAPI + uvicorn | `cd project-tracking && PT_PORT=8768 .venv/bin/python -m webapp` |
+| 443 | project-tracking | Direct TLS (uvicorn), no reverse proxy — cutover complete 2026-07-06, mkcert cert, Caddy retired, old plaintext `:8768` endpoint removed (see `project-tracking/docs/DEPLOYMENT.md`) | `launchctl kickstart -k gui/$(id -u)/com.ssi.project-tracking` (https://og-work-mac-studio.local/ or https://10.10.10.92/) |
 | 8769 | project-monitor | FastAPI + uvicorn | `cd project-monitor && PM_PORT=8769 .venv/bin/project-monitor run` |
 | 8770 | niagara-llm | FastAPI + dashboard | `cd niagara-llm && uv run niagara-llm run` |
 | 8771 | sanguine | FastAPI + dashboard | `cd sanguine && uv run sanguine run` (reads `SANGUINE_PORT`) |
@@ -43,18 +43,19 @@ to bind yet).
 Roll-call command to confirm everything is bound:
 
 ```bash
-lsof -nP -iTCP -sTCP:LISTEN 2>/dev/null | awk '$9 ~ /:(8000|8002|8008|8080|8736|8737|8765|8767|8768|8769|8770|8771|8772|5173)$/ {print $9, "->", $1, "(PID", $2")"}' | sort -u
+lsof -nP -iTCP -sTCP:LISTEN 2>/dev/null | awk '$9 ~ /:(443|8000|8002|8008|8080|8736|8737|8765|8767|8769|8770|8771|8772|5173)$/ {print $9, "->", $1, "(PID", $2")"}' | sort -u
 ```
 
 HTTP probe (expect 200/302/303/401/404 — anything but "Connection refused"). Plain-HTTP
-loopback services only — 8736 (scribe) genuinely terminates TLS (its `uvicorn.run` gets
-`ssl_certfile`/`ssl_keyfile`), so probe it with
-`curl -sk -o /dev/null -w '%{http_code}\n' https://127.0.0.1:8736/` instead (plain HTTP
+loopback services only — 8736 (scribe) and 443 (project-tracking) genuinely terminate TLS
+(their `uvicorn.run` gets `ssl_certfile`/`ssl_keyfile`), so probe those with
+`curl -sk -o /dev/null -w '%{http_code}\n' https://127.0.0.1:<port>/` instead (plain HTTP
 against a TLS-only port fails the handshake and misreports as down). 8737 is genuinely
 plain HTTP despite its plist's SSL env vars, so it stays in this loop:
 
 ```bash
-for p in 8000 8002 8008 8080 8737 8765 8767 8768 8769 8770 8771 8772 5173; do
+for p in 8000 8002 8008 8080 8737 8765 8767 8769 8770 8771 8772 5173; do
   echo "$p: $(curl -s -o /dev/null -w '%{http_code}' --max-time 3 http://127.0.0.1:$p/)"
 done
+echo "443: $(curl -sk -o /dev/null -w '%{http_code}' --max-time 3 https://127.0.0.1:443/)"
 ```
