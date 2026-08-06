@@ -79,7 +79,7 @@ Automated triage for inbound RFI/RFQ/RFP emails at SSi. Parses mail, fetches gat
 
 > ⚠️ **Written but apparently never run.** Two blocking defects found 2026-08-06 suggest this was never exercised end-to-end, so treat the feature list above as intent, not working behavior:
 > 1. `src/shared/mailbox.js` calls `Office.auth.getAccessToken(options, callback)`, but that API is promise-only — it takes no callback. The wrapping `new Promise` therefore never settles and `getGraphToken()` hangs forever, which takes every Graph-backed feature (reply detection, flagging, To Do task) with it.
-> 2. `storage.addItem()` dedups by `conversationId`, which is `null` on an unsaved compose item. Under `OnMessageSend` auto-tracking every new message collides on `null === null` and overwrites the previous one; nothing backfills the real ID later.
+> 2. `storage.addItem()` dedups by `conversationId`, which is `null` on an unsaved, brand-new (non-reply) compose item — replies already carry a real `conversationId` from their thread. Under `OnMessageSend` auto-tracking, consecutive new messages collide on `null === null` and overwrite the previous one; nothing backfills the real ID later.
 >
 > Both are in the add-in's own source, not in this repo — left unfixed here deliberately, since this is a docs refresh.
 

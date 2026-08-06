@@ -24,7 +24,7 @@ three core domains:
 | rfp-automation | DoD RFP intake, scope extraction, proposal drafting | Production |
 | cyber-artifact-gen | BAS→diagram/schematic conversion for proposals | Utility |
 | email-processor | Inbound RFI/RFQ/RFP email triage and summarization | Production |
-| outlook-followup | Outlook follow-up automation | Stub |
+| outlook-followup | "Follow-Up Reminder" Office.js add-in (~1,300 LOC): intended to flag sent mail and remind on no-reply via Outlook flag + To Do task + taskpane dashboard, with Graph reply detection and `roamingSettings` sync. **Graph-backed half is non-functional** — `mailbox.js` passes a callback to the promise-only `Office.auth.getAccessToken`, so `getGraphToken()` never settles; and `storage.addItem()` dedups on `conversationId`, which is `null` at compose time for a brand-new (non-reply) message — replies inherit a real `conversationId` from the thread — so `OnMessageSend` auto-tracking on consecutive new messages overwrites the previous entry | Written, never run — not a stub, but not working either |
 | past-performance | SSi past-performance doc search + extraction | v1 |
 | project-tracking | Job budget/cost/labor/submittal dashboard; React v2 UI primary, Planner/SharePoint Graph sync | v1 |
 | project-monitor | Project folder + Outlook email → PM status via entity registers (contracts, mods, POs, invoices, pay apps) | v2 |
@@ -34,7 +34,7 @@ three core domains:
 | network-scanner | Active network discovery + BACnet enumeration | v1 |
 | ethernet-link-analyzer | Passive LLDP/CDP Ethernet discovery; Pi field appliance w/ touch UI, battery, gated active tests | Phase 4 |
 | virtual-devices | BACnet/IP virtual building fleet (76 devices) | v1 |
-| digital-twin | FRCS HVAC plant digital twin + fault injection; selectable twin models (office-building / barracks-cep campus, mutually exclusive, live-switchable from the HMI), electrical model, ~50-detector FDD (office-building; barracks-cep coverage partial); config-driven mode emulates a real site from a Niagara Supervisor backup (via niagara-config, designed-for future third model) — incl. per-detector role catalog + `config coverage` report, fault injection addressed by real equipment id, findings in real config names, and `config export-fixtures` labeled diagnosis fixtures | v1.12 |
+| digital-twin | DOPPEL — FRCS HVAC plant digital twin + fault injection; selectable twin models (office-building / barracks-cep campus, mutually exclusive, live-switchable from the HMI), electrical model, 65-detector FDD on office-building after the open-fdd parity port (barracks-cep coverage partial) + cross-scope cascade diagnosis; config-driven mode emulates a real site from a Niagara Supervisor backup (via niagara-config, designed-for future third model) — incl. per-detector role catalog + `config coverage` report, fault injection addressed by real equipment id, findings in real config names, `config export-fixtures` labeled diagnosis fixtures, and backup **history replay** (`HistoryReplaySource`, live via `TWIN_HISTORY_REPLAY` or headless via `config replay-backup`) | rev 2.15 |
 | pocket-probe | STM32 LLDP/CDP keychain device | Prototype |
 | prtg-import | Bulk PRTG device import from CSV | Production |
 | kml | KML/topology generation utilities (JBLM) | Utility |
@@ -44,12 +44,12 @@ three core domains:
 | ssi-design-system | SSi brand tokens + CSS + doc generation | v0.1 |
 | claude-sync | Syncthing conflict resolver for ~/.claude | v1 |
 | claude-memory-compiler | Hook-captured Claude conversations → compiled knowledge articles | v0 |
-| floor-plan-editor | 2D/3D floor plan editor → HA card export | Active |
+| floor-plan-editor | 2D/3D floor plan editor → HA card export | **Not on this Mac** — see note below |
 | niagara-docs | Niagara 4.10/4.15 runtime binary cache + Supervisor backup (dev reference, not a project) | Stub |
 | niagara-llm | CASCADE — external LLM analysis brain for Niagara BAS (oBIX/REST-BQL/SQL); FDD + LLM diagnosis, air-gapped local LLM (Ollama), Supervisor audit CLI, backup assessment; backup parser/classifier extracted to niagara-config (consumed via shims); offline diagnosis scorer (`diag-score` + `FixtureSource`) grades detection against digital-twin's labeled fixtures; dashboard API sends portfolio-baseline security headers (CSP/X-Frame-Options/etc. via `api/security_headers.py`, mirroring project-tracking; HSTS opt-in behind `SECURE_HSTS`) | v2 |
 | niagara-config | Shared library: Niagara Supervisor backup (`config.bog`) parser + point→equipment/role semantic classifier; extracted from niagara-llm, consumed by niagara-llm (shims) and digital-twin | Library |
 | sanguine | Internal Levels.com-style blood-lab results viewer (PDF/CSV + Apple Health import, optimal vs standard ranges, trends, biomarker detail pages, PhenoAge biological age, vitals, Claude-generated cached explanations) | v1 |
-| siem-forwarder | Niagara 4 JACE module forwarding point/alarm/audit events to a SIEM over RFC 5424 syslog/TLS, non-interference design | Skeleton/design-complete |
+| siem-forwarder | Niagara 4 JACE module forwarding point + alarm events to a SIEM over RFC 5424 syslog/TLS, non-interference design (audit/platform logs deliberately left to Niagara's native remote syslog; `forwardAudit` exists as a config slot but is not acted on) | Skeleton/design-complete |
 | scribe | SSI Scribe — self-hosted AI meeting note taker: Whisper/MLX ASR, pyannote diarization, Ollama gpt-oss:120b summaries (own repo: github.com/ogreen111/scribe) | v0.1 |
 | scripts | Mount automation + Bash utilities (own repo: github.com/ogreen111/og-scripts, lives at `~/dev/scripts`) | Active |
 
@@ -62,12 +62,33 @@ untracked, gitignored local tooling directory (`migrate-project.sh`,
 directories with different origins; the registry entry was never part of
 dev-portfolio's own tracked history and needed no relocation.
 
+**`floor-plan-editor` is missing from this Mac (noticed 2026-08-06).** All 30
+other registry entries resolve to a real directory under `~/dev/`; this one
+resolves to nothing — not `~/dev/floor-plan-editor`, not
+`~/Documents/dev/floor-plan-editor`, nowhere else under `~`. It's listed in
+`.gitignore` with zero tracked files, so dev-portfolio's own history has no
+copy to restore from, and it appears in **none** of the migration batches
+documented below — it looks like it was simply never carried across when
+everything else moved out of `~/Documents/dev`. Since this machine is the
+one that runs behind the Mac Studio, check there (and Time Machine) before
+treating it as lost. Left in the registry rather than deleted, because the
+registry is the portfolio's source of truth for what *should* exist.
+
+Also present under `~/dev/` but deliberately **not** registry entries:
+`sops`, `stream-deck`, and `trim-backup` (untracked, gitignored plain
+directories — `stream-deck` is a real, buildable Elgato plugin and is the
+strongest candidate for promotion into the registry), plus the empty
+`niagara-mcp-integration` directory and the repo's own `deploy/` and
+`docs/`.
+
 ## Shared Dependencies
 
 - **account-store** → consumed by: rfp-automation, project-tracking, email-processor, past-performance, project-monitor, cert-manager, project-creation, digital-twin (`twin/auth.py`, imported by `twin/web.py` and the admin/session routes)
-- **ssi-design-system** → consumed by: project-tracking, (planned for all SSi web apps)
+- **ssi-design-system** → `apps.json` marks six consumers enabled: project-tracking (the v0 pilot), rfp-automation, email-processor, cyber-artifact-gen, digital-twin, and floor-plan-editor. Synced brand bundles are present on disk in project-tracking, rfp-automation, cyber-artifact-gen, digital-twin, and **scribe** (scribe carries a bundle but has no `apps.json` entry — it drifts on every rebuild until it's added).
+  - ⚠️ **`sync.py` is broken post-migration.** `apps.json`'s `_root` is still `/Users/ogreen/Documents/dev`, and `sync.py` resolves every target as `_root / name / target`. Since no consumer lives there anymore, a sync run skips all of them with "app directory not found". Fix is a one-line `_root` change to `/Users/ogreen/dev` — plus deciding what to do about the `floor-plan-editor` entry, which is enabled but has no directory anywhere (see the note above).
+- **rfp-automation** → consumed by: project-creation (a `[tool.uv.sources]` path dependency alongside account-store, so project-creation needs both siblings checked out)
 - **virtual-devices** → pairs with: digital-twin (frcs-digital-twin) for integration testing (see `virtual-devices/INTEGRATION.md`)
-- **niagara-config** → consumed by: niagara-llm (via re-export shims), digital-twin (config-driven mode)
+- **niagara-config** → consumed by: niagara-llm (via re-export shims), digital-twin (config-driven mode, now including backup history replay — `HistoryReplaySource` reads `niagara_config.backup.csv_history_lookup`'s CSV format)
 - **digital-twin labeled fixtures** (`config export-fixtures`) → consumed by: niagara-llm (`diag-score` offline diagnosis scoring). JSON files are the decoupling contract — no live server, no runtime dependency between the repos.
 
 _Archived 2026-07-14: **cyber-proposals** (removed), **cyber-eac-tool** (`_archive/cyber-eac-tool-20260711.tar.gz`), **cyber-estimates** (`_archive/cyber-estimates-20260714.tar.gz`). The navfac cyber proposal/pricing logic now lives in the `navfac-cyber-proposal` Claude skill._
