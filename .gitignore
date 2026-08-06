@@ -46,3 +46,7 @@ trim-backup/
 
 # Build artifacts
 /tmp/
+
+# Syncthing
+.stfolder/
+.stignore
