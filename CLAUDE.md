@@ -48,7 +48,7 @@ This directory (`~/dev/`) is the `dev-portfolio` git repo — the growing home f
 
 ## Shared Dependencies
 
-- **account-store** → consumed by: rfp-automation, project-tracking, email-processor, project-monitor, cert-manager, project-creation
+- **account-store** → consumed by: rfp-automation, project-tracking, email-processor, past-performance, project-monitor, cert-manager, project-creation, digital-twin (`twin/auth.py`, imported by `twin/web.py` and the admin/session routes)
 - **ssi-design-system** → consumed by: project-tracking, (planned for all SSi web apps)
 - **virtual-devices** → pairs with: digital-twin (frcs-digital-twin) for integration testing (see `virtual-devices/INTEGRATION.md`)
 - **niagara-config** → consumed by: niagara-llm (via re-export shims), digital-twin (config-driven mode)
@@ -335,24 +335,16 @@ migrated via `migrate-project.sh` as-is — its own project-name safety regex
 (`^[A-Za-z0-9._-]+$`) rejects them outright. Rename (or extend the script)
 before attempting either.
 
-**`account-store`** is deliberately not yet migrated: it's a shared
-dependency, referenced by absolute path (`~/Documents/dev/account-store`)
-from several already-migrated projects' venvs (`cert-manager` has it
-hardcoded in `backend/pyproject.toml`; `email-processor`, `past-performance`,
-`rfp-automation`, and `project-tracking` have it editable-installed from
-that same path, which doesn't show up in a source-tree grep). Moving it
-requires re-pointing every one of those in the same pass — planned as its
-own deliberate session, not folded into a routine batch. `project-monitor`
-surfaced a third reference style: `pyproject.toml`'s
-`account-store = { path = "../account-store", editable = true }` is
-*relative*, so once `project-monitor` itself lived at `~/dev/project-monitor`
-it resolved to the (nonexistent) `~/dev/account-store`. Fixed with a bridge
-symlink, `~/dev/account-store -> ~/Documents/dev/account-store` (added to
-`.gitignore` **without** a trailing slash - the trailing-slash form doesn't
-match a symlink, same gotcha as `.venv*` below) - this durably fixes the
-same issue for any other project using a relative `../account-store`
-reference, without touching account-store itself or requiring the full
-coordinated-rename pass.
+**`account-store`** was deliberately deferred past every routine batch
+above because of its shared-dependency blast radius. While deferred, a
+bridge symlink (`~/dev/account-store -> ~/Documents/dev/account-store`,
+added to `.gitignore` **without** a trailing slash - the trailing-slash
+form doesn't match a symlink, same gotcha as `.venv*` below) let
+relative-path consumers like `project-monitor`/`project-creation` resolve
+it correctly from their new `~/dev/` locations in the meantime. See
+"account-store migrated, all 8 dependents re-pointed" below for the full
+resolution, including why that symlink turned out not to be a durable fix
+on its own.
 
 ## ssi-design-system, claude-memory-compiler, sanguine, project-monitor live outside this tree
 
@@ -542,6 +534,107 @@ clone at `prtg-import/previous/` (same repo's March root commit, its own
 unmerged uncommitted edits) - carried along as-is per instruction, moved
 via `ditto` (not `mv` - hit the exact same iCloud cross-boundary deadlock
 this whole script exists to avoid, moving it to the scratchpad and back).
+
+## account-store migrated, all 8 dependents re-pointed
+
+As of 2026-08-05, **`account-store` is no longer under
+`~/Documents/dev/`** - relocated in full to `~/dev/account-store` via
+`ditto`, the last portfolio project to move. A pre-existing nested
+Claude Code worktree (`.claude/worktrees/intelligent-lalande-d5e1cd`,
+detached HEAD, clean, fully pushed) was removed first, same profile as
+every other one this session. The bridge symlink documented above
+(`~/dev/account-store -> ~/Documents/dev/account-store`) had to be
+deleted *before* running `migrate-project.sh` - the script's own
+`[ -e "$NEW" ] && FATAL` check would otherwise refuse to create the real
+directory at a path the symlink already occupied.
+
+Every dependent needed re-pointing, confirmed by surveying each one's
+*actual* reference mechanism rather than assuming - they turned out to be
+five genuinely different patterns, not two:
+
+1. **Hardcoded absolute path in `pyproject.toml`** (`cert-manager`) - edit
+   the one line, rebuild the venv.
+2. **`uv`/setuptools editable install** (`email-processor`,
+   `past-performance`) - the installed `__editable__..._finder.py` bakes
+   a `MAPPING` dict with the *absolute* resolved path at install time (see
+   point 5 below for why this matters), so editing `pyproject.toml` alone
+   does nothing; needs an actual reinstall
+   (`uv pip install --python .venv/bin/python -e ~/dev/account-store`).
+3. **Direct symlink into `site-packages`** (`project-tracking`, per its
+   own `AGENTS.md` recipe - a Python-3.14-specific workaround for
+   setuptools' editable shim dropping hidden `.pth` files) - just
+   recreate the symlink at the new target.
+4. **Bare `PYTHONPATH` env var**, no pip install at all (`rfp-automation`)
+   - baked into 8 separate files that needed fixing in lockstep: the
+   installed `~/Library/LaunchAgents/com.rfpautomation.{dashboard,watcher}.plist`
+   themselves (`EnvironmentVariables.PYTHONPATH`), 5 tracked-but-gitignored
+   `output/live_monitor/*.plist` mirror copies, and the actual source of
+   truth, `scripts/launchd_dashboard_wrapper.sh`. That first pass still
+   missed a real one - see the correction below. Editing the installed
+   plists needed a full `bootout` + `bootstrap` (not `kickstart -k` -
+   changed `EnvironmentVariables` needs the plist definition itself
+   reloaded, not just the process restarted).
+5. **`tool.uv.sources` relative path** (`project-monitor`, `project-creation`
+   - `{ path = "../account-store", editable = true }`). This is the
+   important one to understand: a relative source declaration does **not**
+   provide ongoing resilience to account-store moving - `uv sync` still
+   resolves it to an absolute path *at install time* and bakes that into
+   the installed finder script, identically to pattern 2 above. The
+   bridge symlink documented earlier only worked because it existed at
+   the moment these were installed; once account-store moved for real and
+   the symlink was removed, both needed the exact same
+   `rm -rf .venv .venv.nosync && uv sync` treatment as every absolute-path
+   editable install elsewhere in this portfolio - no exemption for having
+   used the relative form.
+
+All 5 live services (`cert-manager` backend, `email-processor` webserver,
+`past-performance`, `rfp-automation` dashboard + watcher, `project-tracking`)
+were bounced and confirmed genuinely healthy afterward, not just
+"restarted": `cert-manager` `GET /api/health` → `200`; `email-processor` →
+`401` (auth-gated, expected); `past-performance` → `302` (login redirect,
+expected); `project-tracking` → `200` over HTTPS; `rfp-automation`
+dashboard log showed the *old* process's `ModuleNotFoundError` crashes
+ending precisely at the restart timestamp, with clean `200`/`303`
+responses immediately after; `rfp-automation` watcher's own log showed
+zero `ModuleNotFoundError` occurrences post-restart, just normal
+"Using cached access token" activity.
+
+**The first "final grep came back clean" claim here was wrong** - it used
+`2>/dev/null`, which silently swallowed whatever made the wide `~/dev/`
+recursive grep miss real matches it found fine when scoped to a single
+project directory (never fully diagnosed; suspected resource limits on
+such a large recursive tree). A Codex pre-commit review caught it live
+and it's worth remembering generally: don't trust an error-suppressed
+grep's silence as proof of a clean sweep, especially over a big tree.
+Rerunning without suppression turned up a genuinely missed **8th
+consumer, `digital-twin`** (`twin/auth.py`'s docstring, `CLAUDE.md`'s
+`ln -s` recipe, a `CHANGELOG.md` mention) - not in the original 7-project
+survey at all, and a real functional break: `twin/auth.py` genuinely *is*
+imported (`twin/web.py` does `from . import auth` and calls
+`auth.gate(request)` on every request; `twin/routes/admin.py` and
+`twin/routes/session.py` import it too - a first check here that searched
+for `import twin.auth`/`from twin.auth import` missed this relative-import
+style entirely). Its `.venv/lib/python3.14/site-packages/account_store`
+symlink existed but was stale (pointing at the deleted
+`Documents/dev/account-store` - a second check here missed it too, using
+`find -maxdepth 4` on a path that's actually 5 levels deep). Fixed both
+and verified `twin.auth` now imports cleanly. `twin.web`'s *full* import
+chain still fails past that point on an unrelated, pre-existing gap
+(`niagara_config` not installed in this venv at all - flagged
+separately, not fixed here) - `com.ssi.digital-twin` isn't currently
+loaded, so this isn't an active outage, but the HMI would fail to start
+if launched right now. Also found and fixed real broken command examples
+in `rfp-automation`'s `README.md`/`CLAUDE.md`/`AGENTS.md` and a
+**functional break**: its
+`.claude/launch.json` (the actual dev-server preview config used by this
+harness's own `preview_start`, not just docs) had the stale `PYTHONPATH`
+baked in too - fixed and committed in that repo along with the doc
+fixes. `project-tracking` had four more stale doc references beyond the
+two caught initially (`AGENTS.md`, `CLAUDE.md`, `README.md`, plus the
+`webapp/auth.py` docstring). All three affected repos (`rfp-automation`,
+`project-tracking`, `digital-twin`) got their own commits, separate from
+this one. A properly-verified sweep (no `2>/dev/null`, scoped file-by-file
+rather than trusting one wide recursive call) now comes back clean.
 
 ---
 
