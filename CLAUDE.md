@@ -342,7 +342,49 @@ hardcoded in `backend/pyproject.toml`; `email-processor`, `past-performance`,
 `rfp-automation`, and `project-tracking` have it editable-installed from
 that same path, which doesn't show up in a source-tree grep). Moving it
 requires re-pointing every one of those in the same pass — planned as its
-own deliberate session, not folded into a routine batch.
+own deliberate session, not folded into a routine batch. `project-monitor`
+surfaced a third reference style: `pyproject.toml`'s
+`account-store = { path = "../account-store", editable = true }` is
+*relative*, so once `project-monitor` itself lived at `~/dev/project-monitor`
+it resolved to the (nonexistent) `~/dev/account-store`. Fixed with a bridge
+symlink, `~/dev/account-store -> ~/Documents/dev/account-store` (added to
+`.gitignore` **without** a trailing slash - the trailing-slash form doesn't
+match a symlink, same gotcha as `.venv*` below) - this durably fixes the
+same issue for any other project using a relative `../account-store`
+reference, without touching account-store itself or requiring the full
+coordinated-rename pass.
+
+## ssi-design-system, claude-memory-compiler, sanguine, project-monitor live outside this tree
+
+As of 2026-08-05, these four are no longer under `~/Documents/dev/` — moved
+to `~/dev/` in a batch. `ssi-design-system` and `sanguine` both had a
+pre-existing nested Claude Code worktree needing `git worktree remove`
+first (same safe profile as prior batches); `ssi-design-system` also had an
+untracked brand-asset folder (`2022 Spectrum Logos/`, legitimate content,
+stashed/restored). `sanguine` separately turned up three *orphaned*
+`.claude/worktrees/*` directories whose `.git` files point at
+**dev-portfolio's own** (already-deleted) worktree admin data, not
+sanguine's - inert leftover clutter from some earlier session, carried
+along by `ditto` as-is; not a sanguine or migration problem, left alone.
+
+All three with a `.venv` had the same stale-shebang fallout as every prior
+batch - `uv sync` alone often reports success ("Checked N packages")
+without actually regenerating console scripts if it thinks the lockfile is
+already satisfied, so a clean `rm -rf .venv .venv.nosync && uv sync` (per
+each project's own README) was needed, not just a plain re-sync.
+`claude-memory-compiler` was the one exception: its `bin/uvr.sh` wrapper
+deliberately keeps its uv-managed venv entirely outside the synced tree
+(`UV_PROJECT_ENVIRONMENT=~/.local/share/uv-venvs/claude-memory-compiler`),
+so there was no in-project venv to rebuild at all - just `PROJECT_DIR` in
+that wrapper script itself needed the path fix (missed by the script's
+`EXTRA_FIXUP_FILES` pass because the file was untracked and got stashed
+away *before* the copy ran, then restored after - had to be re-applied by
+hand). More importantly, **`~/.claude/settings.json`'s own SessionStart /
+PreCompact / SessionEnd hook commands hardcoded the old absolute path** to
+`bin/uvr.sh` - entirely outside any project tree the migration script could
+see, so it would have silently broken the memory-compiler's automatic
+flush hooks on every future session event. Fixed by hand and verified
+(`hooks/session-start.py` runs correctly from the new path).
 
 ---
 
@@ -415,9 +457,9 @@ Reserved ports for the dev portfolio. Each app binds its assigned port on startu
 | 8765 | email-processor | FastAPI + uvicorn | `cd ~/dev/email-processor && make serve` (applies the `chflags nohidden` .pth workaround; a bare `uv run` re-hides the file on its next sync) |
 | 8767 | past-performance | FastAPI + uvicorn | `cd ~/dev/past-performance && .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8767` |
 | 8768 | project-tracking | FastAPI + uvicorn | `cd ~/dev/project-tracking && PT_PORT=8768 .venv/bin/python -m webapp` |
-| 8769 | project-monitor | FastAPI + uvicorn | `cd project-monitor && PM_PORT=8769 .venv/bin/project-monitor run` |
+| 8769 | project-monitor | FastAPI + uvicorn | `cd ~/dev/project-monitor && PM_PORT=8769 .venv/bin/project-monitor run` |
 | 8770 | niagara-llm | FastAPI + dashboard | `cd ~/dev/niagara-llm && uv run niagara-llm run` |
-| 8771 | sanguine | FastAPI + dashboard | `cd sanguine && uv run sanguine run` (reads `SANGUINE_PORT`) |
+| 8771 | sanguine | FastAPI + dashboard | `cd ~/dev/sanguine && uv run sanguine run` (reads `SANGUINE_PORT`) |
 | 8772 | cyber-brain | FastAPI + dashboard | `cd ~/dev/cyber-brain && uv run cyber-brain run` (reads `CB_HOST`/`CB_PORT`; binds 127.0.0.1 by default) |
 | 8773 | project-creation | FastAPI (default `PROJECT_CREATION_PORT`) | reserved — `project_creation.app:create_app()` exists but the CLI (`project-creation`) is still a stub with no `run`/uvicorn wiring yet |
 | 8774 | fulcrum-replacement | FastAPI + offline-first mobile app (planned) | reserved only — `fulcrum-replacement/` has no `pyproject.toml` or app code yet, just `DESIGN.md`/`DESIGN.docx`; no start command exists until it's built |

@@ -1,7 +1,7 @@
 # Ignore all project subdirectories — only doc files are tracked
 PRTG Import/
 Pocket Probe/
-account-store/
+account-store
 cert-manager/
 claude-sync/
 cyber-artifact-gen/
