@@ -455,6 +455,39 @@ properly extracted:
   (same as `sanguine` earlier) - created by hand. Verified: all three
   modules import, 50 tests collect.
 
+## siem-forwarder extracted into its own repo
+
+As of 2026-08-05, **`siem-forwarder` is no longer tracked inside
+dev-portfolio at all** - same situation and same fix as `project-creation`
+above: 20 files and 5 real commits (Niagara bind-point resolution, alarm
+forwarding, two bug fixes, an SDD sync) were tracked directly in this
+repo's history with no independent `.git`. Extracted via `git subtree
+split --prefix=siem-forwarder`, pushed to a new private repo
+(`github.com/ogreen111/siem-forwarder`), removed from dev-portfolio's
+tracking and added to `.gitignore`. The untracked
+`siemForwarder-SDD-AddendumA.docx` was copied over by hand, same reason as
+`project-creation`'s `.plans/`. This one had no nested worktree and no
+`.plans/`, so it was simpler - but the extracted branch was still cloned
+into the scratchpad first, not directly into `~/dev/siem-forwarder`,
+per the gotcha documented above.
+
+Unlike every other migrated project, **this one can't be build-verified
+here**: `build.gradle` requires Tridium's Niagara Gradle plugin, resolved
+from a licensed Niagara 4.10+ install via the `niagara_home` env var
+(local dev bundle, not Maven Central) - not present in this environment.
+Verification stopped at file-level (`diff -rq --no-dereference` clean,
+correct 5-commit history, correct paths) rather than a working build.
+
+**Also investigated and resolved differently: `deploy` is not a
+project at all.** Its one tracked file, `com.ssi.portfolio.plist`, is
+dev-portfolio's *own* LaunchAgent config for its portfolio index dashboard
+(`~/dev/portfolio_server.py`, port 8737 - see Port Map). It correctly
+lives inside dev-portfolio permanently, like `scripts/` - there's nothing
+to extract or migrate. Confirmed the tracked copy has drifted slightly
+from what's actually installed at `~/Library/LaunchAgents/` (a stale
+comment block about TLS handling) - worth a `cp` sync on next touch, but
+that's routine drift, not a migration blocker.
+
 ---
 
 ## Virtualenvs: keep them in `.venv.nosync` (iCloud workaround)
