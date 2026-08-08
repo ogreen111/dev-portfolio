@@ -21,12 +21,12 @@ three core domains:
 
 | Project | Purpose | Status |
 |---|---|---|
-| rfp-automation | DoD RFP intake, scope extraction, proposal drafting | Production |
+| rfp-automation | DoD RFP intake, scope extraction, proposal drafting; missing-RFP-docs flag surfaces MISC folders with an empty `0.RFP/` that `discover_projects` would otherwise drop silently (`RFP_MISSING_DOCS_ENABLED`) | Production |
 | cyber-artifact-gen | BAS→diagram/schematic conversion for proposals | Utility |
 | email-processor | Inbound RFI/RFQ/RFP email triage and summarization | Production |
 | outlook-followup | "Follow-Up Reminder" Office.js add-in (~1,300 LOC): intended to flag sent mail and remind on no-reply via Outlook flag + To Do task + taskpane dashboard, with Graph reply detection and `roamingSettings` sync. **Graph-backed half is non-functional** — `mailbox.js` passes a callback to the promise-only `Office.auth.getAccessToken`, so `getGraphToken()` never settles; and `storage.addItem()` dedups on `conversationId`, which is `null` at compose time for a brand-new (non-reply) message — replies inherit a real `conversationId` from the thread — so `OnMessageSend` auto-tracking on consecutive new messages overwrites the previous entry | Written, never run — not a stub, but not working either |
 | past-performance | SSi past-performance doc search + extraction | v1 |
-| project-tracking | Job budget/cost/labor/submittal dashboard; React v2 UI primary, Planner/SharePoint Graph sync, Sage 100 Cloud Connector read live as the sole path for Sage-selected users (AR/AP cash position + invoice-level detail; EAC worksheet built but flag-hidden) | v1 |
+| project-tracking | Job budget/cost/labor/submittal dashboard; React v2 UI primary. **Sage-only ingestion** as of 2026-08-07 (Phase 3 cutover retired the funding/labor-PDF report pipeline entirely) — Sage 100 Cloud Connector read live is the sole data source, Planner/SharePoint Graph sync optional on top for % Complete and bucket counts, so a `viewer` account can't track jobs of its own (it still sees jobs shared with it — the shared-jobs merge gates on the owner's role, not the recipient's). AR/AP cash position + invoice-level detail; broadened weekly Executing Review; EAC worksheet built but flag-hidden | v1 |
 | project-monitor | Project folder + Outlook email → PM status via entity registers (contracts, mods, POs, invoices, pay apps) | v2 |
 | cyber-brain | SSi cyber group knowledge system: Graph ingestion (SharePoint/Planner/Teams/email) → per-project event stream, briefs, cited Q&A | v0.1 |
 | daily-summary | Power Automate daily email digest solution | v0 |
