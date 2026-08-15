@@ -43,6 +43,9 @@ trim-backup/
 # git data directory, relocated off iCloud sync (.git is now a symlink to this)
 .git.nosync
 
+# Claude Code local config — carries absolute machine-local paths, and this repo is public
+.claude/
+
 # macOS
 .DS_Store
 
