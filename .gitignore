@@ -56,3 +56,7 @@ trim-backup/
 # Syncthing
 .stfolder/
 .stignore
+camp-dodge-dashboard/
+expense-report
+CIMS-2/
+gate/
