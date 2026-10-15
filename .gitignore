@@ -1,5 +1,6 @@
 # Ignore all project subdirectories — only doc files are tracked
 account-store
+ssi-spec-tools
 cert-manager/
 claude-sync/
 cyber-artifact-gen/
