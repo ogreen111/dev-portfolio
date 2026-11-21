@@ -8,6 +8,33 @@ This directory (`~/dev/`) is the `dev-portfolio` git repo — the growing home f
 
 ---
 
+## This machine (Mac Studio): no repo apps run here
+
+**None of the portfolio's services are deployed on this Studio, by choice.**
+`~/Library/LaunchAgents/` contains no portfolio agents — the only user agents
+loaded are `com.ogreen.claude-sync{,.healthcheck,.menubar}`. Nothing listens on
+any port in the Port Map below.
+
+This is deliberate, not breakage. Do not install, `launchctl bootstrap`, or
+start these services here, and do not report their absent agents or dead ports
+as a fault. The in-repo plist sources
+(`rfp-automation/output/live_monitor/*.plist`,
+`project-tracking/deploy/*.plist`, `deploy/com.ssi.portfolio.plist`) are source
+files, not evidence of intended local deployment.
+
+**Read the "lives outside this tree" sections below as history, not as current
+state.** They document a 2026-08-05 relocation off iCloud and describe agents
+being repointed, bounced, and verified live at that time. Those verifications
+were true then and are not true here now.
+
+Also absent from `~/dev` on this machine despite appearing in the registry:
+**`scribe`** and **`project-creation`**. Both are their own GitHub repos
+(`github.com/ogreen111/{scribe,project-creation}`) and are recoverable by
+cloning; `project-creation`'s untracked `.plans/` docs were local-only and are
+not in that repo.
+
+---
+
 ## Project Registry
 
 | Project | Purpose | Status |
@@ -511,7 +538,10 @@ and `git branch -a` warnings. Fixed 2026-08-03 the same way as venvs:
 
 ## Port Map
 
-Reserved ports for the dev portfolio. Each app binds its assigned port on startup; do not double-book.
+Portfolio-wide port *reservations*, so the projects don't double-book each
+other wherever they are deployed. **Nothing in this table runs on this Mac
+Studio** — see "This machine" above. The start commands are reference for the
+machines that do host these services, not an invitation to launch them here.
 
 | Port | Project | Service | Start command |
 |---|---|---|---|
