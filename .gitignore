@@ -15,7 +15,7 @@ floor-plan-editor/
 kml/
 network-scanner/
 niagara-config/
-niagara-docs/
+niagara-docs
 niagara-llm/
 niagara-mcp-integration/
 outlook-followup/
@@ -61,3 +61,5 @@ camp-dodge-dashboard/
 expense-report
 CIMS-2/
 gate/
+PRTG Import/
+Pocket Probe/
